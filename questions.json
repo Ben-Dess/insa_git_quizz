@@ -1,0 +1,46 @@
+{
+    "questions": [
+        {
+            "question": "Quel est le jeu vidéo le plus vendu de tous les temps ?",
+            "id": 1,
+            "answers": [
+                {
+                    "response": "Minecraft",
+                    "isCorrect": false
+                },
+                {
+                    "response": "Tetris",
+                    "isCorrect": true
+                },
+                {
+                    "response": "GTA V",
+                    "isCorrect": false
+                },
+                {
+                    "response": "Wii Sports",
+                    "isCorrect": false
+                },
+                {
+                    "response": "Super Mario Bros",
+                    "isCorrect": false
+                },
+                {
+                    "response": "Wii Fit",
+                    "isCorrect": false
+                },
+                {
+                    "response": "PUBG",
+                    "isCorrect": false
+                },
+                {
+                    "response": "Wii Play",
+                    "isCorrect": false
+                }
+            ],
+            "category": [
+                "gaming"
+            ],
+            "difficulty": "1"
+        }
+    ]
+}
