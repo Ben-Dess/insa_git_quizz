@@ -16,14 +16,15 @@ class Question:
                 answers.append(answer)
         for i in range(3):
             random_answer = random.choice(self.answers)
-            if random_answer not in answers:
-                answers.append(random_answer)
+            while random_answer in answers:
+                random_answer = random.choice(self.answers)
+            answers.append(random_answer)
         random.shuffle(answers)
         return answers
     
     def check_answer(self, answer):
         for ans in self.answers:
-            if ans["text"] == answer:
+            if ans == answer:
                 return ans["isCorrect"]
         return False
 
@@ -31,7 +32,7 @@ class Question:
         return f"{self.question} - {self.answers} - {self.category} - {self.difficulty}"
 
 def get_questions():
-    with open("questions.json", "r") as file:
+    with open("questions.json", "r", encoding="utf-8") as file:
         questions = json.load(file)
         questions_list = []
         for question in questions["questions"]:
@@ -59,16 +60,15 @@ def get_questions_by_difficulty(difficulty):
         print(question.question)
 
     
-def get_random_question(questions):
-    return random.choice(questions)
 
 def main():
     questions = get_questions()
+    random.shuffle(questions)
     for question in questions:
         print(question.question)
         reponses = question.getanswers()
         for answer in reponses:
-            print(f"{reponses.index(answer)+1}. {answer['text']}")
+            print(f"{reponses.index(answer)+1}. {answer['response']}")
         choice = input("Entre ta réponse: ")
         if question.check_answer(reponses[int(choice)-1]):
             print("Correct")
