@@ -1,79 +1,135 @@
-import json
+import sqlite3
+from typing import List, Dict
 import random
+import time
 
 class Question:
-    def __init__(self, idQuest,  question, answers, category, difficulty):
-        self.id = idQuest
+    def __init__(self, id: int, idBonneRep: int, question: str, difficulty: str, theme: list, reponses: list):
+        self.id = id
         self.question = question
-        self.answers = answers
-        self.category = category
+        self.idBonneRep = idBonneRep
         self.difficulty = difficulty
-    
-    def getanswers(self):
-        answers = []
-        for answer in self.answers:
-            if answer["isCorrect"]:
-                answers.append(answer)
-        for i in range(3):
-            random_answer = random.choice(self.answers)
-            while random_answer in answers:
-                random_answer = random.choice(self.answers)
-            answers.append(random_answer)
-        random.shuffle(answers)
-        return answers
-    
-    def check_answer(self, answer):
-        for ans in self.answers:
-            if ans == answer:
-                return ans["isCorrect"]
-        return False
+        self.theme = theme
+        self.reponses = reponses
 
     def __str__(self):
-        return f"{self.question} - {self.answers} - {self.category} - {self.difficulty}"
-
-def get_questions():
-    with open("questions.json", "r", encoding="utf-8") as file:
-        questions = json.load(file)
-        questions_list = []
-        for question in questions["questions"]:
-            questions_list.append(Question(question["id"], question["question"], question["answers"], question["category"], question["difficulty"]))
-        return questions_list
+        return f"{self.question} ({self.difficulty})"
     
-def get_question_by_id(id):
-    questions = get_questions()
-    for question in questions:
-        if question.id == id:
-            return question
-    return None
+class Reponse:
+    def __init__(self, id: int, reponse: str):
+        self.id = id
+        self.reponse = reponse
 
-def get_questions_by_category(category):
-    questions = get_questions()
-    questions_by_category = []
-    for question in questions:
-        if question.category == category:
-            questions_by_category.append(question)
-    return questions_by_category
-
-def get_questions_by_difficulty(difficulty):
-    questions = get_questions()
-    for question in questions:
-        print(question.question)
-
+    def __str__(self):
+        return f"{self.reponse}"
     
+class Theme:
+    def __init__(self, id: int, theme: str):
+        self.id = id
+        self.theme = theme
+
+    def __str__(self):
+        return f"{self.theme}"
+
+def get_questions_from_db(db_path: str) -> List[Question]:
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Question")
+    questions = []
+    for row in cursor.fetchall():
+        id, idBonneRep, question, difficulty = row
+        questions.append(Question(id, idBonneRep, question, difficulty, [], []))
+        cursor.execute("SELECT * FROM QuestionReponses WHERE idQuestion = ?", (str(id),))
+        for row in cursor.fetchall():
+            _, idReponse = row
+            cursor.execute("SELECT * FROM Reponses WHERE idreponse = ?", (str(idReponse),))
+            reponse = cursor.fetchone()
+            questions[-1].reponses.append(Reponse(reponse[0], reponse[1]))
+        cursor.execute("SELECT * FROM ThemeQuestion WHERE idQuestion = ?", (str(id),))
+        for row in cursor.fetchall():
+            _, idTheme = row
+            cursor.execute("SELECT * FROM Thematique WHERE idTheme = ?", (str(idTheme),))
+            theme = cursor.fetchone()
+            questions[-1].theme.append(Theme(theme[0], theme[1]))
+            cursor.execute("SELECT * FROM LiaisonThematique WHERE idTheme1 = ?", (str(idTheme),))
+            for row in cursor.fetchall():
+                _, idTheme = row
+                cursor.execute("SELECT * FROM Thematique WHERE idTheme = ?", (str(idTheme),))
+                theme = cursor.fetchone()
+                questions[-1].theme.append(Theme(theme[0], theme[1]))
+    conn.close()
+    return questions
+
+def get_themes_from_db(db_path: str) -> List[Theme]:
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Thematique")
+    themes = []
+    for row in cursor.fetchall():
+        id, theme = row
+        themes.append(Theme(id, theme))
+    conn.close()
+    return themes
+
+def get_questions_by_theme(questions: List[Question], theme: str) -> List[Question]:
+    return [question for question in questions if theme in [t.theme for t in question.theme]]
+
+def get_questions_by_difficulty(questions: List[Question], difficulty: str) -> List[Question]:
+    return [question for question in questions if question.difficulty == difficulty]
+
+def get_questions_by_theme_and_difficulty(questions: List[Question], theme: str, difficulty: str) -> List[Question]:
+    return [question for question in questions if theme in [t.theme for t in question.theme] and question.difficulty == difficulty]
+
+def get_question_by_id(questions: List[Question], id: int) -> Question:
+    return [question for question in questions if question.id == id][0]
+
+def get_reponse_by_id(question: Question, id: int) -> Reponse:
+    return [reponse for reponse in question.reponses if reponse.id == id][0]
+
+def get_theme_by_id(question: Question, id: int) -> Theme:
+    return [theme for theme in question.theme if theme.id == id][0]
+
+def get_theme_by_name(themes: List[Theme], name: str) -> Theme:
+    return [theme for theme in themes if theme.theme == name][0]
+
+def get_theme_id_by_name(themes: List[Theme], name: str) -> int:
+    return [theme.id for theme in themes if theme.theme == name][0]
+
+def get_difficulties(questions: List[Question]) -> List[str]:
+    return list(set([question.difficulty for question in questions]))
+
+def get_themes(questions: List[Question]) -> List[str]:
+    return list(set([theme.theme for question in questions for theme in question.theme]))
 
 def main():
-    questions = get_questions()
+    questions = get_questions_from_db("questions.sqlite")
     random.shuffle(questions)
+    questions = questions[:10]
     for question in questions:
-        print(question.question)
-        reponses = question.getanswers()
-        for answer in reponses:
-            print(f"{reponses.index(answer)+1}. {answer['response']}")
-        choice = input("Entre ta réponse: ")
-        if question.check_answer(reponses[int(choice)-1]):
-            print("Correct")
+        print(question)
+
+        # Selectionner 4 réponses avec une bonne réponse
+        reponses = question.reponses
+        random.shuffle(reponses)
+        correct_reponse = get_reponse_by_id(question, question.idBonneRep)
+        reponses = reponses[:4]
+        if correct_reponse not in reponses:
+            reponses[0] = correct_reponse
+        random.shuffle(reponses)
+        
+        for i in range(len(reponses)):
+            print(f"{i+1}. {reponses[i]}")
+
+        print()
+
+        repuser = int(input("Votre réponse: ")) - 1
+        if reponses[repuser] == correct_reponse:
+            print("Bonne réponse")
         else:
-            print("Incorrect")
+            print("Mauvaise réponse")
+        time.sleep(1.5)
+        print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+    
 
 if __name__ == "__main__":
     main()
