@@ -134,7 +134,7 @@ def main():
             wrongAnswers += 1
         time.sleep(1.5)
         print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
-    total = goodAnswers - wrongAnswers
+    totalScore = goodAnswers - wrongAnswers
     print("Vous avez eu",goodAnswers," bonnes réponses,",wrongAnswers,"mauvaises réponses, et un score final de",totalScore) #print score
     
 
