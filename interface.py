@@ -1,9 +1,11 @@
 # Example file showing a circle moving on screen
+from xml.etree.ElementTree import tostring
 
 import pygame
 import pygame_widgets
 from pygame_widgets.button import Button
-import gestion_questions
+import quiz
+import random
 # pygame setup
 pygame.init()
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -11,8 +13,52 @@ clock = pygame.time.Clock()
 running = True
 dt = 0
 
-questions = gestion_questions.get_questions()
-answers = questions[0].getanswers()
+def answer_check(correct_response, responseText):
+    if str(correct_response.reponse) == responseText:
+        print("bonne reponse")
+    else:
+        print("mauvaise reposne")
+
+
+
+questions = quiz.get_questions_from_db("questions.sqlite")
+random.shuffle(questions)
+questions = questions[:10]
+answers = questions[0].reponses
+correct_reponse = quiz.get_reponse_by_id(questions[0], questions[0].idBonneRep)
+reponses = answers[:4]
+if correct_reponse not in reponses:
+    reponses[0] = correct_reponse
+random.shuffle(reponses)
+buttons = []
+offset = 0
+for answer in reponses:
+
+    responseText = str(answer.reponse)
+    size = len(responseText)
+
+    buttons.append(Button(
+        # Mandatory Parameters
+        screen,  # Surface to place button on
+        400,  # X-coordinate of top left corner
+        300+ offset,  # Y-coordinate of top left corner
+        size*40,  # Width
+        50,  # Height
+
+        # Optional Parameters
+        text=responseText,  # Text to display
+        textColour= 'white',
+        fontSize=40,  # Size of font
+        margin=20,  # Minimum distance between text/image and edge of button
+        inactiveColour=(200, 50, 0),  # Colour of button when not being interacted with
+        hoverColour=(150, 0, 0),  # Colour of button when being hovered over
+        pressedColour=(0, 200, 20),  # Colour of button when being clicked
+        radius=20,  # Radius of border corners (leave empty for not curved)
+        onClick=lambda: answer_check(correct_reponse, responseText)  # Function to call when clicked on
+    ))
+    offset+=100
+
+
 
 
 while running:
@@ -31,35 +77,13 @@ while running:
 
     text = font.render(questions[0].question, True, "black")
     textRect = text.get_rect()
-    textRect.center = (600, 200)
+    textRect.center = (600 + len(questions[0].question)/2, 200)
     screen.blit(text, textRect)
     offset= 0
-    buttons = []
 
-    for answer in answers :
-        size = len(answer['response'])
-        buttons.append(Button(
-            # Mandatory Parameters
-            screen,  # Surface to place button on
-            400,  # X-coordinate of top left corner
-            300+ offset,  # Y-coordinate of top left corner
-            size*40,  # Width
-            50,  # Height
 
-            # Optional Parameters
-            text=answer['response'],  # Text to display
-            textColour= 'white',
-            fontSize=40,  # Size of font
-            margin=20,  # Minimum distance between text/image and edge of button
-            inactiveColour=(200, 50, 0),  # Colour of button when not being interacted with
-            hoverColour=(150, 0, 0),  # Colour of button when being hovered over
-            pressedColour=(0, 200, 20),  # Colour of button when being clicked
-            radius=20,  # Radius of border corners (leave empty for not curved)
-            onClick=lambda: print('Click')  # Function to call when clicked on
-        ))
-        offset+=100
     # flip() the display to put your work on screen
-
+    size=len("EXIT")
     buttonQuit = Button(
         # Mandatory Parameters
         screen,  # Surface to place button on
