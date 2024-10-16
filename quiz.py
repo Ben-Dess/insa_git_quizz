@@ -102,6 +102,9 @@ def get_themes(questions: List[Question]) -> List[str]:
     return list(set([theme.theme for question in questions for theme in question.theme]))
 
 def main():
+    wrongAnswers = 0
+    goodAnswers = 0
+    totalScore = 0
     questions = get_questions_from_db("questions.sqlite")
     random.shuffle(questions)
     questions = questions[:10]
@@ -125,10 +128,14 @@ def main():
         repuser = int(input("Votre réponse: ")) - 1
         if reponses[repuser] == correct_reponse:
             print("Bonne réponse")
+            goodAnswers += 1
         else:
             print("Mauvaise réponse")
+            wrongAnswers += 1
         time.sleep(1.5)
         print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+    totalScore = goodAnswers - wrongAnswers
+    print("Vous avez eu",goodAnswers," bonnes réponses,",wrongAnswers,"mauvaises réponses, et un score final de",totalScore) #print score
     
 
 if __name__ == "__main__":
