@@ -1,1 +1,1 @@
-readme en légende
+Lancer quiz.py pour lancer le jeu.
