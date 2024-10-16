@@ -62,6 +62,8 @@ def get_questions_by_difficulty(difficulty):
     
 
 def main():
+    goodAnswers = 0
+    wrongAnswers = 0
     questions = get_questions()
     random.shuffle(questions)
     for question in questions:
@@ -72,8 +74,12 @@ def main():
         choice = input("Entre ta réponse: ")
         if question.check_answer(reponses[int(choice)-1]):
             print("Correct")
+            goodAnswers += 1
         else:
             print("Incorrect")
+            wrongAnswers += 1
+    score = goodAnswers - wrongAnswers #score total
+    print("Vous avez eu", goodAnswers,"bonnes réponses,", wrongAnswers,"mauvaises réponses, et votre score final est:", score)
 
 if __name__ == "__main__":
     main()
