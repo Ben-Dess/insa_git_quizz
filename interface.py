@@ -2,15 +2,19 @@ import pygame
 import sys
 from quiz import main as quiz_main, get_questions_from_db, get_reponse_by_id
 import random
-
+from bonus import curseur
 # Initialiser Pygame
 pygame.init()
 
 # Initialiser le module mixer de Pygame
 pygame.mixer.init()
 
+# Charger et définir l'icône 
+icon = pygame.image.load('images/icon.png')
+pygame.display.set_icon(icon)
+
 # Charger et jouer la musique
-pygame.mixer.music.load('background_music.mp3')
+pygame.mixer.music.load('musique/menu.mp3')
 pygame.mixer.music.play(-1)  # -1 pour jouer en boucle
 pygame.mixer.music.set_volume(0.1)
 
@@ -24,17 +28,20 @@ LIGHT_GREY = (230, 230, 230)
 NEON_COLORS = [(57, 255, 20), (255, 20, 147), (0, 255, 255), (255, 255, 0)]
 
 # Définir les dimensions de l'écran
-SCREEN_WIDTH = 1920
-SCREEN_HEIGHT = 1080
+SCREEN_WIDTH = 1366
+SCREEN_HEIGHT = 768
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Quiz Game")
 
 # Charger le fond d'écran
-background = pygame.image.load('background.jpg')
+background = pygame.image.load('images/fond.jpg')
 background = pygame.transform.scale(background, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
+# Définir le curseur 
+cursor = curseur('images/curseur.png')
+
 # Définir la police
-font = pygame.font.Font(None, 74)
+font = pygame.font.Font(None, 50)
 button_font = pygame.font.Font(None, 50)
 input_font = pygame.font.Font(None, 48)  # Augmenter la taille de la police pour les réponses
 
@@ -56,7 +63,7 @@ def main_menu():
         
         # Centrer le titre
         draw_text('Quiz Game', font, BLACK, screen, SCREEN_WIDTH // 2, 100)
-
+        
         mx, my = pygame.mouse.get_pos()
 
         # Placer les boutons côte à côte
@@ -77,7 +84,7 @@ def main_menu():
         draw_button('Ranked Mode', button_font, RED, button_2, screen)
 
         draw_text('Scoreboard (on verra plus tard)', button_font, GREY, screen, SCREEN_WIDTH // 2, 600)
-
+        cursor.draw(screen)
         click = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -87,6 +94,46 @@ def main_menu():
                 if event.button == 1:
                     click = True
 
+        pygame.display.update()
+
+def end_screen(score):
+    running = True
+    while running:
+        screen.blit(background, (0, 0))
+        draw_text(f'Fin du quiz! Votre score final est : {score}', font, BLACK, screen, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
+
+        # Préparer le texte du bouton
+        button_text = 'Revenir au menu principal'
+        
+        # Calculer la largeur du texte pour ajuster la taille du bouton
+        text_surf = button_font.render(button_text, True, WHITE)
+        button_width = text_surf.get_width() + 40  # Ajouter de l'espace autour du texte
+        button_height = 50
+
+        # Créer le bouton et le centrer sur l'écran
+        quit_button = pygame.Rect(SCREEN_WIDTH // 2 - button_width // 2, SCREEN_HEIGHT // 2 + 100, button_width, button_height)
+        
+        # Dessiner le bouton "Revenir au menu principal"
+        draw_button(button_text, button_font, RED, quit_button, screen)
+
+        # Dessiner le curseur
+        cursor.draw(screen)
+
+        # Gestion des événements
+        click = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    click = True
+
+        # Gérer les clics sur le bouton "Quitter"
+        if quit_button.collidepoint(pygame.mouse.get_pos()) and click:
+            running = False  # Quitte l'écran de fin et retourne au menu principal
+
+        # Mettre à jour l'affichage
         pygame.display.update()
 
 def normal_mode():
@@ -101,19 +148,21 @@ def ranked_mode():
     input_text = ''
     show_choices = False
     displayed_reponses = []
-    choice_rects = []  # Initialiser choice_rects ici
+    choice_rects = []
+    running = True
 
-    while True:
+    while running:
         screen.blit(background, (0, 0))
         
-        # Afficher le score actuel
         draw_text(f'Score: {score}', font, BLACK, screen, SCREEN_WIDTH // 2, 50)
 
-        # Afficher la question actuelle
+        if current_question_index >= len(questions):
+            end_screen(score)  # Toutes les questions ont été posées, aller à l'écran de fin
+            return  # Sort de ranked_mode() une fois l'écran de fin terminé
+
         current_question = questions[current_question_index]
         draw_text(current_question.question, font, BLACK, screen, SCREEN_WIDTH // 2, 200)
 
-        # Afficher la zone de texte pour la réponse si les choix ne sont pas affichés
         if not show_choices:
             input_box = pygame.Rect(SCREEN_WIDTH // 2 - 150, 300, 300, 50)
             pygame.draw.rect(screen, LIGHT_GREY, input_box, border_radius=10)
@@ -122,7 +171,6 @@ def ranked_mode():
             screen.blit(text_surface, (input_box.x + 5, input_box.y + 5))
             input_box.w = max(300, text_surface.get_width() + 10)
 
-        # Afficher les boutons
         quit_button = pygame.Rect(100, SCREEN_HEIGHT - 100, 200, 50)
         validate_button = pygame.Rect(SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT - 100, 200, 50)
         help_button = pygame.Rect(SCREEN_WIDTH - 300, SCREEN_HEIGHT - 100, 200, 50)
@@ -135,13 +183,14 @@ def ranked_mode():
             choice_rects = []
             for i, choice in enumerate(displayed_reponses):
                 choice_text = input_font.render(str(choice.reponse), True, BLACK)
-                choice_width = max(300, choice_text.get_width() + 40)  # Ajuster la largeur de la case en fonction du texte
+                choice_width = max(300, choice_text.get_width() + 40)
                 choice_rect = pygame.Rect(SCREEN_WIDTH // 2 - choice_width // 2, 400 + i * 100, choice_width, 80)
                 pygame.draw.rect(screen, LIGHT_GREY, choice_rect, border_radius=10)
                 pygame.draw.rect(screen, NEON_COLORS[i % len(NEON_COLORS)], choice_rect, 4, border_radius=10)
                 screen.blit(choice_text, (choice_rect.x + (choice_rect.width - choice_text.get_width()) // 2, choice_rect.y + (choice_rect.height - choice_text.get_height()) // 2))
                 choice_rects.append((choice_rect, choice))
 
+        cursor.draw(screen)
         click = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -151,8 +200,7 @@ def ranked_mode():
                 if event.button == 1:
                     click = True
                     if quit_button.collidepoint(event.pos):
-                        pygame.quit()
-                        sys.exit()
+                        running = False
                     if validate_button.collidepoint(event.pos):
                         correct_reponse = get_reponse_by_id(current_question, current_question.idBonneRep)
                         if input_text == correct_reponse.reponse:
@@ -162,8 +210,6 @@ def ranked_mode():
                         if score < 0:
                             score = 0
                         current_question_index += 1
-                        if current_question_index >= len(questions):
-                            current_question_index = 0
                         input_text = ''
                         show_choices = False
                         displayed_reponses = []
@@ -188,8 +234,6 @@ def ranked_mode():
                             if score < 0:
                                 score = 0
                             current_question_index += 1
-                            if current_question_index >= len(questions):
-                                current_question_index = 0
                             input_text = ''
                             show_choices = False
                             displayed_reponses = []
@@ -201,6 +245,7 @@ def ranked_mode():
                     input_text += event.unicode
 
         pygame.display.update()
+
 
 if __name__ == "__main__":
     main_menu()
