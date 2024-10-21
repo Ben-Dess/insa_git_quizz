@@ -84,6 +84,7 @@ def get_question_by_id(questions: List[Question], id: int) -> Question:
     return [question for question in questions if question.id == id][0]
 
 def get_reponse_by_id(question: Question, id: int) -> Reponse:
+    print(question.question)
     return [reponse for reponse in question.reponses if reponse.id == id][0]
 
 def get_theme_by_id(question: Question, id: int) -> Theme:
