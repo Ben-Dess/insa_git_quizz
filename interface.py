@@ -2,7 +2,7 @@ import pygame
 import sys
 from quiz import main as quiz_main, get_questions_from_db, get_reponse_by_id
 import random
-from bonus import curseur
+from bonus import curseur, start_timer, is_time_up, draw_timer
 # Initialiser Pygame
 pygame.init()
 
@@ -45,11 +45,13 @@ font = pygame.font.Font(None, 50)
 button_font = pygame.font.Font(None, 50)
 input_font = pygame.font.Font(None, 48)  # Augmenter la taille de la police pour les réponses
 
+# Fonction pour ajouter du texte
 def draw_text(text, font, color, surface, x, y):
     textobj = font.render(text, True, color)
     textrect = textobj.get_rect(center=(x, y))
     surface.blit(textobj, textrect)
 
+# Fonction pour créer un bouton
 def draw_button(text, font, color, rect, surface):
     pygame.draw.rect(surface, color, rect, border_radius=10)
     text_surf = font.render(text, True, WHITE)
@@ -100,7 +102,7 @@ def end_screen(score):
     running = True
     while running:
         screen.blit(background, (0, 0))
-        draw_text(f'Fin du quiz! Votre score final est : {score}', font, BLACK, screen, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
+        draw_text(f'Fin du quiz ! Votre score final est : {score}', font, BLACK, screen, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
 
         # Préparer le texte du bouton
         button_text = 'Revenir au menu principal'
@@ -149,12 +151,16 @@ def ranked_mode():
     show_choices = False
     displayed_reponses = []
     choice_rects = []
+
+    # Démarrer le chronomètre pour chaque question (10 secondes)
+    start_time, duration = start_timer(10)
+
     running = True
 
     while running:
         screen.blit(background, (0, 0))
         
-        draw_text(f'Score: {score}', font, BLACK, screen, SCREEN_WIDTH // 2, 50)
+        draw_text(f'Score: {score}', font, BLACK, screen, SCREEN_WIDTH // 4, 50)
 
         if current_question_index >= len(questions):
             end_screen(score)  # Toutes les questions ont été posées, aller à l'écran de fin
@@ -162,6 +168,17 @@ def ranked_mode():
 
         current_question = questions[current_question_index]
         draw_text(current_question.question, font, BLACK, screen, SCREEN_WIDTH // 2, 200)
+
+        # Afficher le chronomètre à l'écran
+        draw_timer(screen, font, start_time, duration, SCREEN_WIDTH // 2, 50)
+
+        # Si le temps est écoulé, passer à la question suivante
+        if is_time_up(start_time, duration):
+            current_question_index += 1
+            start_time, duration = start_timer(10)  # Redémarrer le chronomètre pour la nouvelle question
+            input_text = ''
+            show_choices = False
+            displayed_reponses = []
 
         if not show_choices:
             input_box = pygame.Rect(SCREEN_WIDTH // 2 - 150, 300, 300, 50)
@@ -213,6 +230,7 @@ def ranked_mode():
                         input_text = ''
                         show_choices = False
                         displayed_reponses = []
+                        start_time, duration = start_timer(10)  # Redémarrer le chronomètre
                     if help_button.collidepoint(event.pos):
                         if not show_choices:
                             reponses = current_question.reponses
@@ -237,7 +255,7 @@ def ranked_mode():
                             input_text = ''
                             show_choices = False
                             displayed_reponses = []
-                            break
+                            start_time, duration = start_timer(10)  # Redémarrer le chronomètre
             if event.type == pygame.KEYDOWN and not show_choices:
                 if event.key == pygame.K_BACKSPACE:
                     input_text = input_text[:-1]
