@@ -179,6 +179,7 @@ def ranked_mode():
         screen.blit(background, (0, 0))
         
         draw_text(f'Score: {score}', font, BLACK, screen, SCREEN_WIDTH // 4, 50)
+        draw_text(f'Meilleure série: {streakBest}', font, BLACK, screen, SCREEN_WIDTH // 4, 100)
 
         if current_question_index >= len(questions):
             end_screen(score, streakBest)  # Toutes les questions ont été posées, aller à l'écran de fin
