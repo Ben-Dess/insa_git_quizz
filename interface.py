@@ -61,6 +61,67 @@ def draw_button(text, font, color, rect, surface):
     text_rect = text_surf.get_rect(center=rect.center)
     surface.blit(text_surf, text_rect)
 
+def get_user_name():
+    input_box = pygame.Rect(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2, 300, 50)
+    user_name = ''
+    while True:
+        screen.blit(background, (0, 0))
+        draw_text('Entrez votre pseudo:', font, BLACK, screen, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
+        pygame.draw.rect(screen, LIGHT_GREY, input_box, border_radius=10)
+        pygame.draw.rect(screen, BLACK, input_box, 2, border_radius=10)
+        text_surface = input_font.render(user_name, True, BLACK)
+        screen.blit(text_surface, (input_box.x + 5, input_box.y + 5))
+        input_box.w = max(300, text_surface.get_width() + 10)
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    return user_name
+                elif event.key == pygame.K_BACKSPACE:
+                    user_name = user_name[:-1]
+                else:
+                    user_name += event.unicode
+import os
+
+def read_leaderboard(file_path='leaderboard.txt'):
+    if not os.path.exists(file_path):
+        return []
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+    leaderboard = []
+    for line in lines:
+        name, score = line.strip().split(',')
+        leaderboard.append((name, int(score)))
+    return leaderboard
+
+def write_leaderboard(leaderboard, file_path='leaderboard.txt'):
+    with open(file_path, 'w') as file:
+        for name, score in leaderboard:
+            file.write(f'{name},{score}\n')
+
+def update_leaderboard(name, score, file_path='leaderboard.txt'):
+    leaderboard = read_leaderboard(file_path)
+    for i, (existing_name, existing_score) in enumerate(leaderboard):
+        if existing_name == name:
+            if score > existing_score:
+                leaderboard[i] = (name, score)
+            break
+    else:
+        leaderboard.append((name, score))
+    leaderboard.sort(key=lambda x: x[1], reverse=True)
+    leaderboard = leaderboard[:5]  # Garder seulement les 5 meilleurs scores
+    write_leaderboard(leaderboard, file_path)
+
+def draw_leaderboard(surface, font, x, y):
+    leaderboard = read_leaderboard()
+    draw_text('Leaderboard:', font, BLACK, surface, x, y)
+    for i, (name, score) in enumerate(leaderboard):
+        draw_text(f'{i+1}. {name}: {score}', font, BLACK, surface, x, y + (i + 1) * 30)
+
 def main_menu():
     click = False
     while True:
@@ -77,8 +138,7 @@ def main_menu():
         button_spacing = 50
         button_1 = pygame.Rect((SCREEN_WIDTH // 2) - button_width - (button_spacing // 2), 400, button_width, button_height)
         button_2 = pygame.Rect((SCREEN_WIDTH // 2) + (button_spacing // 2), 400, button_width, button_height)
-        quit_button = pygame.Rect(SCREEN_WIDTH - 350, 150, 200, 50)
-        mute_button = pygame.Rect(SCREEN_WIDTH - 350, 50, 200, 50)
+
         if button_1.collidepoint((mx, my)):
             if click:
                 normal_mode()
@@ -86,24 +146,16 @@ def main_menu():
             if click:
                 ranked_mode()
 
-        if mute_button.collidepoint((mx, my)):
-            if click:
-                if pygame.mixer.music.get_volume() > 0:
-                    pygame.mixer.music.set_volume(0)
-                else:
-                    pygame.mixer.music.set_volume(0.1)
-        if quit_button.collidepoint((mx, my)):
-            if click:
-                pygame.quit()
-                sys.exit()
-        draw_button('Mute', button_font, GREY, mute_button, screen)
-        draw_button('Quitter', button_font, RED, quit_button, screen)
-
         draw_button('Normal Mode', button_font, BLUE, button_1, screen)
         draw_button('Ranked Mode', button_font, RED, button_2, screen)
 
-        draw_text('Scoreboard (on verra plus tard)', button_font, GREY, screen, SCREEN_WIDTH // 2, 600)
+
+        # Afficher le leaderboard
+        draw_leaderboard(screen, font, SCREEN_WIDTH // 2, 700)
+
+        # Dessiner le curseur personnalisé
         cursor.draw(screen)
+
         click = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -116,6 +168,8 @@ def main_menu():
         pygame.display.update()
 
 def end_screen(score, serie):
+    user_name = get_user_name()
+    update_leaderboard(user_name, score)
     running = True
     while running:
         screen.blit(background, (0, 0))
