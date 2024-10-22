@@ -2,7 +2,7 @@ import pygame
 import sys
 from quiz import main as quiz_main, get_questions_from_db, get_reponse_by_id
 import random
-from bonus import curseur
+from bonus import curseur, start_timer, is_time_up, draw_timer
 # Initialiser Pygame
 pygame.init()
 
@@ -28,9 +28,10 @@ LIGHT_GREY = (230, 230, 230)
 NEON_COLORS = [(57, 255, 20), (255, 20, 147), (0, 255, 255), (255, 255, 0)]
 
 # Définir les dimensions de l'écran
-SCREEN_WIDTH = 1366
-SCREEN_HEIGHT = 768
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+info = pygame.display.Info()
+SCREEN_WIDTH = info.current_w
+SCREEN_HEIGHT = info.current_h
+screen = pygame.display.set_mode((0, 0),pygame.FULLSCREEN)
 pygame.display.set_caption("Quiz Game")
 
 # Charger le fond d'écran
@@ -42,14 +43,17 @@ cursor = curseur('images/curseur.png')
 
 # Définir la police
 font = pygame.font.Font(None, 50)
+
 button_font = pygame.font.Font(None, 50)
 input_font = pygame.font.Font(None, 48)  # Augmenter la taille de la police pour les réponses
 
+# Fonction pour ajouter du texte
 def draw_text(text, font, color, surface, x, y):
     textobj = font.render(text, True, color)
     textrect = textobj.get_rect(center=(x, y))
     surface.blit(textobj, textrect)
 
+# Fonction pour créer un bouton
 def draw_button(text, font, color, rect, surface):
     pygame.draw.rect(surface, color, rect, border_radius=10)
     text_surf = font.render(text, True, WHITE)
@@ -72,13 +76,27 @@ def main_menu():
         button_spacing = 50
         button_1 = pygame.Rect((SCREEN_WIDTH // 2) - button_width - (button_spacing // 2), 400, button_width, button_height)
         button_2 = pygame.Rect((SCREEN_WIDTH // 2) + (button_spacing // 2), 400, button_width, button_height)
-
+        quit_button = pygame.Rect(SCREEN_WIDTH - 350, 150, 200, 50)
+        mute_button = pygame.Rect(SCREEN_WIDTH - 350, 50, 200, 50)
         if button_1.collidepoint((mx, my)):
             if click:
                 normal_mode()
         if button_2.collidepoint((mx, my)):
             if click:
                 ranked_mode()
+
+        if mute_button.collidepoint((mx, my)):
+            if click:
+                if pygame.mixer.music.get_volume() > 0:
+                    pygame.mixer.music.set_volume(0)
+                else:
+                    pygame.mixer.music.set_volume(0.1)
+        if quit_button.collidepoint((mx, my)):
+            if click:
+                pygame.quit()
+                sys.exit()
+        draw_button('Mute', button_font, GREY, mute_button, screen)
+        draw_button('Quitter', button_font, RED, quit_button, screen)
 
         draw_button('Normal Mode', button_font, BLUE, button_1, screen)
         draw_button('Ranked Mode', button_font, RED, button_2, screen)
@@ -151,12 +169,16 @@ def ranked_mode():
     show_choices = False
     displayed_reponses = []
     choice_rects = []
+
+    # Démarrer le chronomètre pour chaque question (10 secondes)
+    start_time, duration = start_timer(10)
+
     running = True
 
     while running:
         screen.blit(background, (0, 0))
         
-        draw_text(f'Score: {score}', font, BLACK, screen, SCREEN_WIDTH // 2, 50)
+        draw_text(f'Score: {score}', font, BLACK, screen, SCREEN_WIDTH // 4, 50)
 
         if current_question_index >= len(questions):
             end_screen(score, streakBest)  # Toutes les questions ont été posées, aller à l'écran de fin
@@ -164,6 +186,17 @@ def ranked_mode():
 
         current_question = questions[current_question_index]
         draw_text(current_question.question, font, BLACK, screen, SCREEN_WIDTH // 2, 200)
+
+        # Afficher le chronomètre à l'écran
+        draw_timer(screen, font, start_time, duration, SCREEN_WIDTH // 2, 50)
+
+        # Si le temps est écoulé, passer à la question suivante
+        if is_time_up(start_time, duration):
+            current_question_index += 1
+            start_time, duration = start_timer(10)  # Redémarrer le chronomètre pour la nouvelle question
+            input_text = ''
+            show_choices = False
+            displayed_reponses = []
 
         if not show_choices:
             input_box = pygame.Rect(SCREEN_WIDTH // 2 - 150, 300, 300, 50)
@@ -216,6 +249,7 @@ def ranked_mode():
                         input_text = ''
                         show_choices = False
                         displayed_reponses = []
+                        start_time, duration = start_timer(10)  # Redémarrer le chronomètre
                     if help_button.collidepoint(event.pos):
                         if not show_choices:
                             reponses = current_question.reponses
@@ -241,7 +275,7 @@ def ranked_mode():
                             input_text = ''
                             show_choices = False
                             displayed_reponses = []
-                            break
+                            start_time, duration = start_timer(10)  # Redémarrer le chronomètre
             if event.type == pygame.KEYDOWN and not show_choices:
                 if event.key == pygame.K_BACKSPACE:
                     input_text = input_text[:-1]
