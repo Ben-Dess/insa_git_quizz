@@ -1,8 +1,9 @@
 import pygame
 import sys
-from quiz import main as quiz_main, get_questions_from_db, get_reponse_by_id
+from quiz import main as quiz_main, get_questions_from_db, get_reponse_by_id, get_themes, get_difficulties, get_questions_by_theme, get_questions_by_difficulty
 import random
 from bonus import curseur, start_timer, is_time_up, draw_timer
+
 # Initialiser Pygame
 pygame.init()
 
@@ -56,7 +57,7 @@ def draw_text(text, font, color, surface, x, y):
 # Fonction pour créer un bouton
 def draw_button(text, font, color, rect, surface):
     pygame.draw.rect(surface, color, rect, border_radius=10)
-    text_surf = font.render(text, True, WHITE)
+    text_surf = font.render(str(text), True, WHITE)
     text_rect = text_surf.get_rect(center=rect.center)
     surface.blit(text_surf, text_rect)
 
@@ -155,8 +156,194 @@ def end_screen(score, serie):
         pygame.display.update()
 
 def normal_mode():
-    # Lancer le quiz en mode normal
-    quiz_main()
+    questions = get_questions_from_db("questions.sqlite")
+    themes = get_themes(questions)
+    difficulties = get_difficulties(questions)
+
+    selected_theme = None
+    selected_difficulty = None
+
+    def choose_theme_or_difficulty():
+        click = False
+        while True:
+            screen.blit(background, (0, 0))
+            
+            draw_text('Choisissez un thème ou une difficulté', font, BLACK, screen, SCREEN_WIDTH // 2, 100)
+
+            mx, my = pygame.mouse.get_pos()
+
+            # Afficher les thèmes
+            theme_buttons = []
+            for i, theme in enumerate(themes):
+                button_rect = pygame.Rect(100, 200 + i * 60, 300, 50)
+                theme_buttons.append((button_rect, theme))
+                draw_button(theme, button_font, BLUE, button_rect, screen)
+
+            # Afficher les difficultés
+            difficulty_buttons = []
+            for i, difficulty in enumerate(difficulties):
+                button_rect = pygame.Rect(SCREEN_WIDTH - 400, 200 + i * 60, 300, 50)
+                difficulty_buttons.append((button_rect, difficulty))
+                draw_button(difficulty, button_font, RED, button_rect, screen)
+
+            # Dessiner le curseur personnalisé
+            cursor.draw(screen)
+
+            click = False
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        click = True
+
+            for button_rect, theme in theme_buttons:
+                if button_rect.collidepoint(mx, my) and click:
+                    return 'theme', theme
+
+            for button_rect, difficulty in difficulty_buttons:
+                if button_rect.collidepoint(mx, my) and click:
+                    return 'difficulty', difficulty
+
+            pygame.display.update()
+
+    choice_type, choice_value = choose_theme_or_difficulty()
+
+    if choice_type == 'theme':
+        filtered_questions = get_questions_by_theme(questions, choice_value)
+    else:
+        filtered_questions = get_questions_by_difficulty(questions, choice_value)
+
+    # Limiter à 10 questions ou moins si pas assez de questions
+    filtered_questions = filtered_questions[:10]
+
+    # Lancer le quiz avec les questions filtrées
+    run_quiz(filtered_questions)
+
+def run_quiz(questions):
+    current_question_index = 0
+    score = 0
+    streak = 0  # Initialiser le streak
+    best_streak = 0  # Initialiser le meilleur streak
+    input_text = ''
+    show_choices = False
+    displayed_reponses = []
+    choice_rects = []  # Initialiser choice_rects ici
+
+    while True:
+        screen.blit(background, (0, 0))
+        
+        # Afficher le score actuel
+        draw_text(f'Score: {score}', font, BLACK, screen, SCREEN_WIDTH // 2, 50)
+        # Afficher le streak actuel
+        draw_text(f'Streak: {streak}', font, BLACK, screen, SCREEN_WIDTH // 2, 100)
+        # Afficher le meilleur streak
+        draw_text(f'Best Streak: {best_streak}', font, BLACK, screen, SCREEN_WIDTH // 2, 150)
+
+        if current_question_index >= len(questions):
+            end_screen(score, best_streak)  # Toutes les questions ont été posées, aller à l'écran de fin
+            return  # Sort de run_quiz() une fois l'écran de fin terminé
+
+        current_question = questions[current_question_index]
+        draw_text(current_question.question, font, BLACK, screen, SCREEN_WIDTH // 2, 200)
+
+        # Afficher la zone de texte pour la réponse si les choix ne sont pas affichés
+        if not show_choices:
+            input_box = pygame.Rect(SCREEN_WIDTH // 2 - 150, 300, 300, 50)
+            pygame.draw.rect(screen, LIGHT_GREY, input_box, border_radius=10)
+            pygame.draw.rect(screen, BLACK, input_box, 2, border_radius=10)
+            text_surface = input_font.render(input_text, True, BLACK)
+            screen.blit(text_surface, (input_box.x + 5, input_box.y + 5))
+            input_box.w = max(300, text_surface.get_width() + 10)
+
+        # Afficher les boutons
+        quit_button = pygame.Rect(100, SCREEN_HEIGHT - 100, 200, 50)
+        validate_button = pygame.Rect(SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT - 100, 200, 50)
+        help_button = pygame.Rect(SCREEN_WIDTH - 300, SCREEN_HEIGHT - 100, 200, 50)
+
+        draw_button('Quitter', button_font, RED, quit_button, screen)
+        draw_button('Valider', button_font, BLUE, validate_button, screen)
+        draw_button('Aide', button_font, GREY, help_button, screen)
+
+        if show_choices:
+            choice_rects = []
+            for i, choice in enumerate(displayed_reponses):
+                choice_text = input_font.render(str(choice.reponse), True, BLACK)
+                choice_width = max(300, choice_text.get_width() + 40)  # Ajuster la largeur de la case en fonction du texte
+                choice_rect = pygame.Rect(SCREEN_WIDTH // 2 - choice_width // 2, 400 + i * 100, choice_width, 80)
+                pygame.draw.rect(screen, LIGHT_GREY, choice_rect, border_radius=10)
+                pygame.draw.rect(screen, NEON_COLORS[i % len(NEON_COLORS)], choice_rect, 4, border_radius=10)
+                screen.blit(choice_text, (choice_rect.x + (choice_rect.width - choice_text.get_width()) // 2, choice_rect.y + (choice_rect.height - choice_text.get_height()) // 2))
+                choice_rects.append((choice_rect, choice))
+
+        click = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    click = True
+                    if quit_button.collidepoint(event.pos):
+                        pygame.quit()
+                        sys.exit()
+                    if validate_button.collidepoint(event.pos):
+                        correct_reponse = get_reponse_by_id(current_question, current_question.idBonneRep)
+                        if input_text == correct_reponse.reponse:
+                            score += 1
+                            streak += 1  # Incrémenter le streak
+                            if streak > best_streak:
+                                best_streak = streak  # Mettre à jour le meilleur streak
+                        else:
+                            score -= 1
+                            streak = 0  # Réinitialiser le streak en cas de mauvaise réponse
+                        if score < 0:
+                            score = 0
+                        current_question_index += 1
+                        input_text = ''
+                        show_choices = False
+                        displayed_reponses = []
+                    if help_button.collidepoint(event.pos):
+                        if not show_choices:
+                            reponses = current_question.reponses
+                            random.shuffle(reponses)
+                            correct_reponse = get_reponse_by_id(current_question, current_question.idBonneRep)
+                            reponses = reponses[:4]
+                            if correct_reponse not in reponses:
+                                reponses[0] = correct_reponse
+                            random.shuffle(reponses)
+                            displayed_reponses = reponses
+                            show_choices = True
+                    for choice_rect, choice in choice_rects:
+                        if choice_rect.collidepoint(event.pos):
+                            correct_reponse = get_reponse_by_id(current_question, current_question.idBonneRep)
+                            if choice == correct_reponse:
+                                score += 0.5
+                                streak += 1  # Incrémenter le streak
+                                if streak > best_streak:
+                                    best_streak = streak  # Mettre à jour le meilleur streak
+                            else:
+                                score -= 1
+                                streak = 0  # Réinitialiser le streak en cas de mauvaise réponse
+                            if score < 0:
+                                score = 0
+                            current_question_index += 1
+                            input_text = ''
+                            show_choices = False
+                            displayed_reponses = []
+                            break
+            if event.type == pygame.KEYDOWN and not show_choices:
+                if event.key == pygame.K_BACKSPACE:
+                    input_text = input_text[:-1]
+                else:
+                    input_text += event.unicode
+
+        # Dessiner le curseur personnalisé
+        cursor.draw(screen)
+
+        pygame.display.update()
+
 
 def ranked_mode():
     questions = get_questions_from_db("questions.sqlite")
