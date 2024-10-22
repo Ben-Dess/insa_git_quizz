@@ -28,9 +28,10 @@ LIGHT_GREY = (230, 230, 230)
 NEON_COLORS = [(57, 255, 20), (255, 20, 147), (0, 255, 255), (255, 255, 0)]
 
 # Définir les dimensions de l'écran
-SCREEN_WIDTH = 1366
-SCREEN_HEIGHT = 768
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+info = pygame.display.Info()
+SCREEN_WIDTH = info.current_w
+SCREEN_HEIGHT = info.current_h
+screen = pygame.display.set_mode((0, 0),pygame.FULLSCREEN)
 pygame.display.set_caption("Quiz Game")
 
 # Charger le fond d'écran
@@ -42,6 +43,7 @@ cursor = curseur('images/curseur.png')
 
 # Définir la police
 font = pygame.font.Font(None, 50)
+
 button_font = pygame.font.Font(None, 50)
 input_font = pygame.font.Font(None, 48)  # Augmenter la taille de la police pour les réponses
 
@@ -74,13 +76,27 @@ def main_menu():
         button_spacing = 50
         button_1 = pygame.Rect((SCREEN_WIDTH // 2) - button_width - (button_spacing // 2), 400, button_width, button_height)
         button_2 = pygame.Rect((SCREEN_WIDTH // 2) + (button_spacing // 2), 400, button_width, button_height)
-
+        quit_button = pygame.Rect(SCREEN_WIDTH - 350, 150, 200, 50)
+        mute_button = pygame.Rect(SCREEN_WIDTH - 350, 50, 200, 50)
         if button_1.collidepoint((mx, my)):
             if click:
                 normal_mode()
         if button_2.collidepoint((mx, my)):
             if click:
                 ranked_mode()
+
+        if mute_button.collidepoint((mx, my)):
+            if click:
+                if pygame.mixer.music.get_volume() > 0:
+                    pygame.mixer.music.set_volume(0)
+                else:
+                    pygame.mixer.music.set_volume(0.1)
+        if quit_button.collidepoint((mx, my)):
+            if click:
+                pygame.quit()
+                sys.exit()
+        draw_button('Mute', button_font, GREY, mute_button, screen)
+        draw_button('Quitter', button_font, RED, quit_button, screen)
 
         draw_button('Normal Mode', button_font, BLUE, button_1, screen)
         draw_button('Ranked Mode', button_font, RED, button_2, screen)
