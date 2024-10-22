@@ -114,11 +114,11 @@ def main_menu():
 
         pygame.display.update()
 
-def end_screen(score):
+def end_screen(score, serie):
     running = True
     while running:
         screen.blit(background, (0, 0))
-        draw_text(f'Fin du quiz ! Votre score final est : {score}', font, BLACK, screen, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
+        draw_text(f'Fin du quiz!\nVotre score final est: {score},\nEt votre meilleure série de bonnes réponses est: {serie}', font, BLACK, screen, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
 
         # Préparer le texte du bouton
         button_text = 'Revenir au menu principal'
@@ -163,6 +163,8 @@ def ranked_mode():
     random.shuffle(questions)
     current_question_index = 0
     score = 0
+    streak = 0
+    streakBest = 0
     input_text = ''
     show_choices = False
     displayed_reponses = []
@@ -179,7 +181,7 @@ def ranked_mode():
         draw_text(f'Score: {score}', font, BLACK, screen, SCREEN_WIDTH // 4, 50)
 
         if current_question_index >= len(questions):
-            end_screen(score)  # Toutes les questions ont été posées, aller à l'écran de fin
+            end_screen(score, streakBest)  # Toutes les questions ont été posées, aller à l'écran de fin
             return  # Sort de ranked_mode() une fois l'écran de fin terminé
 
         current_question = questions[current_question_index]
@@ -237,11 +239,12 @@ def ranked_mode():
                     if validate_button.collidepoint(event.pos):
                         correct_reponse = get_reponse_by_id(current_question, current_question.idBonneRep)
                         if input_text == correct_reponse.reponse:
-                            score += 1
+                            streak += 1
+                            score += 50*streak
+                            if streak > streakBest:
+                                streakBest = streak
                         else:
-                            score -= 1
-                        if score < 0:
-                            score = 0
+                            streak = 0
                         current_question_index += 1
                         input_text = ''
                         show_choices = False
@@ -262,11 +265,12 @@ def ranked_mode():
                         if choice_rect.collidepoint(event.pos):
                             correct_reponse = get_reponse_by_id(current_question, current_question.idBonneRep)
                             if choice == correct_reponse:
-                                score += 0.5
+                                streak += 1
+                                score += 25*streak
+                                if streak > streakBest:
+                                    streakBest = streak
                             else:
-                                score -= 1
-                            if score < 0:
-                                score = 0
+                                streak = 0
                             current_question_index += 1
                             input_text = ''
                             show_choices = False
