@@ -2,7 +2,7 @@ import pygame
 import sys
 from quiz import main as quiz_main, get_questions_from_db, get_reponse_by_id, get_themes, get_difficulties, get_questions_by_theme, get_questions_by_difficulty
 import random
-from bonus import curseur, start_timer, is_time_up, draw_timer, add_question_to_db, get_difficulties, get_theme
+from bonus import curseur, start_timer, is_time_up, draw_timer, add_question_to_db
 
 # Initialiser Pygame
 pygame.init()
@@ -32,6 +32,7 @@ NEON_COLORS = [(57, 255, 20), (255, 20, 147), (0, 255, 255), (255, 255, 0)]
 info = pygame.display.Info()
 SCREEN_WIDTH = info.current_w
 SCREEN_HEIGHT = info.current_h
+screen = pygame.display.set_mode((0, 0),pygame.FULLSCREEN)
 pygame.display.set_caption("Quiz Game")
 
 # Charger le fond d'écran
