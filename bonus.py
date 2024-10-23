@@ -68,7 +68,7 @@ def add_question_to_db(question, reponses, theme, difficulty):
 
 
 # Fonctions permettant de récupérer les thèmes et les difficultés des tables Thematique et Question
-def get_themes():
+def get_theme():
     conn = sqlite3.connect("questions.sqlite")
     cursor = conn.cursor()
     cursor.execute("SELECT nomTheme FROM Thematique")

@@ -2,7 +2,7 @@ import pygame
 import sys
 from quiz import main as quiz_main, get_questions_from_db, get_reponse_by_id, get_themes, get_difficulties, get_questions_by_theme, get_questions_by_difficulty
 import random
-from bonus import curseur, start_timer, is_time_up, draw_timer, add_question_to_db, get_difficulties, get_themes
+from bonus import curseur, start_timer, is_time_up, draw_timer, add_question_to_db, get_difficulties, get_theme
 
 # Initialiser Pygame
 pygame.init()
@@ -138,6 +138,8 @@ def main_menu():
         button_spacing = 50
         button_1 = pygame.Rect((SCREEN_WIDTH // 2) - button_width - (button_spacing // 2), 400, button_width, button_height)
         button_2 = pygame.Rect((SCREEN_WIDTH // 2) + (button_spacing // 2), 400, button_width, button_height)
+        quit_button = pygame.Rect(SCREEN_WIDTH - 350, 150, 200, 50)
+        mute_button = pygame.Rect(SCREEN_WIDTH - 350, 50, 200, 50)
 
         if button_1.collidepoint((mx, my)):
             if click:
@@ -145,7 +147,18 @@ def main_menu():
         if button_2.collidepoint((mx, my)):
             if click:
                 ranked_mode()
-
+        if mute_button.collidepoint((mx, my)):
+            if click:
+                if pygame.mixer.music.get_volume() > 0:
+                    pygame.mixer.music.set_volume(0)
+                else:
+                    pygame.mixer.music.set_volume(0.1)
+        if quit_button.collidepoint((mx, my)):
+            if click:
+                pygame.quit()
+                sys.exit()
+        draw_button('Mute', button_font, GREY, mute_button, screen)
+        draw_button('Quitter', button_font, RED, quit_button, screen)
         draw_button('Normal Mode', button_font, BLUE, button_1, screen)
         draw_button('Ranked Mode', button_font, RED, button_2, screen)
         button_3 = pygame.Rect((SCREEN_WIDTH // 2) - (button_width // 2), 550, button_width, button_height)
