@@ -32,7 +32,6 @@ NEON_COLORS = [(57, 255, 20), (255, 20, 147), (0, 255, 255), (255, 255, 0)]
 info = pygame.display.Info()
 SCREEN_WIDTH = info.current_w
 SCREEN_HEIGHT = info.current_h
-screen = pygame.display.set_mode((0, 0),pygame.FULLSCREEN)
 pygame.display.set_caption("Quiz Game")
 
 # Charger le fond d'écran
