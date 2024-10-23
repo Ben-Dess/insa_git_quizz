@@ -2,7 +2,7 @@ import pygame
 import sys
 from quiz import main as quiz_main, get_questions_from_db, get_reponse_by_id, get_themes, get_difficulties, get_questions_by_theme, get_questions_by_difficulty
 import random
-from bonus import curseur, start_timer, is_time_up, draw_timer
+from bonus import curseur, start_timer, is_time_up, draw_timer, add_question_to_db, get_difficulties, get_themes
 
 # Initialiser Pygame
 pygame.init()
@@ -148,6 +148,13 @@ def main_menu():
 
         draw_button('Normal Mode', button_font, BLUE, button_1, screen)
         draw_button('Ranked Mode', button_font, RED, button_2, screen)
+        button_3 = pygame.Rect((SCREEN_WIDTH // 2) - (button_width // 2), 550, button_width, button_height)
+
+        if button_3.collidepoint((mx, my)):
+            if click:
+                add_question_screen(screen) 
+
+        draw_button('Ajouter une Question', button_font, BLUE, button_3, screen)
 
 
         # Afficher le leaderboard
@@ -407,6 +414,7 @@ def run_quiz(questions):
         pygame.display.update()
 
 
+# Fonction lançant la version Ranked du quiz
 def ranked_mode():
     questions = get_questions_from_db("questions.sqlite")
     random.shuffle(questions)
@@ -419,7 +427,7 @@ def ranked_mode():
     displayed_reponses = []
     choice_rects = []
 
-    # Démarrer le chronomètre pour chaque question (10 secondes)
+    # Démarrage du chronomètre pour chaque question (10 secondes, commence à 9s et se termine à 0s)
     start_time, duration = start_timer(10)
 
     running = True
@@ -437,13 +445,13 @@ def ranked_mode():
         current_question = questions[current_question_index]
         draw_text(current_question.question, font, BLACK, screen, SCREEN_WIDTH // 2, 200)
 
-        # Afficher le chronomètre à l'écran
+        # Affichage du chronomètre à l'écran
         draw_timer(screen, font, start_time, duration, SCREEN_WIDTH // 2, 50)
 
-        # Si le temps est écoulé, passer à la question suivante
+        # Si le temps est écoulé, on passe à la question suivante
         if is_time_up(start_time, duration):
             current_question_index += 1
-            start_time, duration = start_timer(10)  # Redémarrer le chronomètre pour la nouvelle question
+            start_time, duration = start_timer(10) # Chronomètre réinitialisé
             input_text = ''
             show_choices = False
             displayed_reponses = []
@@ -504,6 +512,7 @@ def ranked_mode():
                         displayed_reponses = []
                         start_time, duration = start_timer(10)  # Redémarrer le chronomètre
                     # Gestion du boutton d'aide
+
                     if help_button.collidepoint(event.pos):
                         if not show_choices:
                             reponses = current_question.reponses
@@ -529,7 +538,7 @@ def ranked_mode():
                             input_text = ''
                             show_choices = False
                             displayed_reponses = []
-                            start_time, duration = start_timer(10)  # Redémarrer le chronomètre
+                            start_time, duration = start_timer(10)  
             if event.type == pygame.KEYDOWN and not show_choices:
                 if event.key == pygame.K_BACKSPACE:
                     input_text = input_text[:-1]
@@ -537,7 +546,130 @@ def ranked_mode():
                     input_text += event.unicode
 
         pygame.display.update()
+# Fonction permettant au joueur d'ajouter des questions à la base de données
+def add_question_screen(screen):
+    input_text_question = ''
+    input_text_reponses = ['', '', '', '']  # 4 champs de réponse
+    current_input_index = 0  # 0 pour question, 1-4 pour les réponses
+    theme_selected = None
+    difficulty_selected = None
+    error_message = ""  # Message d'erreur si le formulaire est incomplet
+
+    themes = get_themes()  # Obtention des thèmes
+    difficulties = get_difficulties()  # Obtention des difficultés
+    cursor.draw(screen)
+    
+    running = True
+    while running:
+        screen.blit(background, (0, 0))
+        draw_text('Ajouter une question', font, BLACK, screen, SCREEN_WIDTH // 2, 100)
+        # Affichage du champ de saisie pour la question
+        draw_text("Question:", font, BLACK, screen, SCREEN_WIDTH // 4, 200)
+        input_box_question = pygame.Rect(SCREEN_WIDTH // 2 - 150, 200, 300, 50)
+        pygame.draw.rect(screen, LIGHT_GREY, input_box_question, border_radius=10)
+        pygame.draw.rect(screen, BLACK, input_box_question, 2, border_radius=10)
+        text_surface_question = input_font.render(input_text_question, True, BLACK)
+        screen.blit(text_surface_question, (input_box_question.x + 5, input_box_question.y + 5))
+        input_box_question.w = max(300, text_surface_question.get_width() + 10)
+
+        # Affichage des champs de réponse
+        input_boxes_reponses = []
+        for i in range(4):
+            draw_text(f"Réponse {i+1}:", font, BLACK, screen, SCREEN_WIDTH // 4, 300 + i * 70)
+            input_box_reponse = pygame.Rect(SCREEN_WIDTH // 2 - 150, 300 + i * 70, 300, 50)
+            input_boxes_reponses.append(input_box_reponse)  # Sauvegarder chaque boîte de réponse
+            pygame.draw.rect(screen, LIGHT_GREY, input_box_reponse, border_radius=10)
+            pygame.draw.rect(screen, BLACK, input_box_reponse, 2, border_radius=10)
+            text_surface_reponse = input_font.render(input_text_reponses[i], True, BLACK)
+            screen.blit(text_surface_reponse, (input_box_reponse.x + 5, input_box_reponse.y + 5))
+
+        # Afficher la sélection du thème
+        draw_text("Thème:", font, BLACK, screen, SCREEN_WIDTH // 4, 600)
+        theme_box = pygame.Rect(SCREEN_WIDTH // 2 - 150, 600, 300, 50)
+        pygame.draw.rect(screen, LIGHT_GREY, theme_box, border_radius=10)
+        theme_text = input_font.render(theme_selected if theme_selected else "Choisir thème", True, BLACK)
+        screen.blit(theme_text, (theme_box.x + 5, theme_box.y + 5))
+
+        # Affichage de la sélection de la difficulté
+        draw_text("Difficulté:", font, BLACK, screen, SCREEN_WIDTH // 4, 700)
+        difficulty_box = pygame.Rect(SCREEN_WIDTH // 2 - 150, 700, 300, 50)
+        pygame.draw.rect(screen, LIGHT_GREY, difficulty_box, border_radius=10)
+        difficulty_text = input_font.render(difficulty_selected if difficulty_selected else "Choisir difficulté", True, BLACK)
+        screen.blit(difficulty_text, (difficulty_box.x + 5, difficulty_box.y + 5))
+
+        # Boutons
+        validate_button = pygame.Rect(SCREEN_WIDTH // 5 - 100, 800, 200, 50)
+        draw_button("Valider", button_font, BLUE, validate_button, screen)
+        quit_button = pygame.Rect(SCREEN_WIDTH // 15 - 100, 800, 200, 50)
+        draw_button("Quitter", button_font, RED, quit_button, screen)
+
+        # Affichage du message d'erreur 
+        if error_message:
+            draw_text(error_message, font, RED, screen, SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100)
+
+        cursor.draw(screen)
+
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if validate_button.collidepoint(event.pos):
+                    # Vérification des champs
+                    if not input_text_question:
+                        error_message = "Le champ de la question est vide !"
+                    elif '' in input_text_reponses:
+                        error_message = "Tous les champs de réponse doivent être remplis !"
+                    elif not theme_selected:
+                        error_message = "Veuillez sélectionner un thème !"
+                    elif not difficulty_selected:
+                        error_message = "Veuillez sélectionner une difficulté !"
+                    else:
+                        # Soumettre la question à la BDD (si tout est rempli)
+                        error_message = ""
+                        add_question_to_db(input_text_question, input_text_reponses, theme_selected, difficulty_selected)
+                        print("Question soumise avec succès!")
+                        running = False
+                # Bouton Quitter que permet de revenir en arrière dans le jeu
+                if quit_button.collidepoint(event.pos):
+                     return
+                if theme_box.collidepoint(event.pos):
+                    # Sélection d'un thème
+                    theme_selected = themes[0]  
+
+                if difficulty_box.collidepoint(event.pos):
+                    # Sélection d'une difficulté
+                    difficulty_selected = difficulties[0]  
+
+                # Sélection de la zone de texte (question ou réponse)
+                if input_box_question.collidepoint(event.pos):
+                    current_input_index = 0  # Focaliser sur la question
+
+                # Vérification de chaque zone de réponse
+                for i, input_box_reponse in enumerate(input_boxes_reponses):
+                    if input_box_reponse.collidepoint(event.pos):
+                        current_input_index = i + 1  # Focaliser sur la réponse correspondante
+
+            if event.type == pygame.KEYDOWN:
+                # La question
+                if current_input_index == 0:  # Champ de question sélectionné
+                    if event.key == pygame.K_BACKSPACE:
+                        input_text_question = input_text_question[:-1]
+                    else:
+                        input_text_question += event.unicode
+
+                # Les réponses
+                elif 1 <= current_input_index <= 4:  # Champ de réponse sélectionné
+                    index_reponse = current_input_index - 1
+                    if event.key == pygame.K_BACKSPACE:
+                        input_text_reponses[index_reponse] = input_text_reponses[index_reponse][:-1]
+                    else:
+                        input_text_reponses[index_reponse] += event.unicode
 
 
 if __name__ == "__main__":
     main_menu()
+
