@@ -210,6 +210,7 @@ def end_screen(score, serie):
         pygame.display.update()
 
 def normal_mode():
+    # Jeu en mode normal
     questions = get_questions_from_db("questions.sqlite")
     themes = get_themes(questions)
     difficulties = get_difficulties(questions)
@@ -217,6 +218,7 @@ def normal_mode():
     selected_theme = None
     selected_difficulty = None
 
+    # Fonction pour choisir un thème ou une difficulté
     def choose_theme_or_difficulty():
         click = False
         while True:
@@ -244,6 +246,7 @@ def normal_mode():
             cursor.draw(screen)
 
             click = False
+            # Gestions des évènements Quitter et Valider
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -320,6 +323,7 @@ def run_quiz(questions):
         draw_button('Valider', button_font, BLUE, validate_button, screen)
         draw_button('Aide', button_font, GREY, help_button, screen)
 
+        # Afficher les choix si show_choices est True
         if show_choices:
             choice_rects = []
             for i, choice in enumerate(displayed_reponses):
@@ -332,6 +336,7 @@ def run_quiz(questions):
                 choice_rects.append((choice_rect, choice))
 
         click = False
+        # Gestions des évènements
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -339,9 +344,11 @@ def run_quiz(questions):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     click = True
+                    # Gestion du bouton quitter
                     if quit_button.collidepoint(event.pos):
                         pygame.quit()
                         sys.exit()
+                        # Gestion du bouton valider
                     if validate_button.collidepoint(event.pos):
                         correct_reponse = get_reponse_by_id(current_question, current_question.idBonneRep)
                         if input_text == correct_reponse.reponse:
@@ -358,6 +365,7 @@ def run_quiz(questions):
                         input_text = ''
                         show_choices = False
                         displayed_reponses = []
+                    # Gestion du bouton aide
                     if help_button.collidepoint(event.pos):
                         if not show_choices:
                             reponses = current_question.reponses
@@ -439,7 +447,7 @@ def ranked_mode():
             input_text = ''
             show_choices = False
             displayed_reponses = []
-
+        # Afficher la zone de texte pour la réponse si les choix ne sont pas affichés
         if not show_choices:
             input_box = pygame.Rect(SCREEN_WIDTH // 2 - 150, 300, 300, 50)
             pygame.draw.rect(screen, LIGHT_GREY, input_box, border_radius=10)
@@ -456,6 +464,7 @@ def ranked_mode():
         draw_button('Valider', button_font, BLUE, validate_button, screen)
         draw_button('Aide', button_font, GREY, help_button, screen)
 
+        # Afficher les choix si show_choices est True
         if show_choices:
             choice_rects = []
             for i, choice in enumerate(displayed_reponses):
@@ -476,8 +485,10 @@ def ranked_mode():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     click = True
+                    # Gestion du bouton quitter
                     if quit_button.collidepoint(event.pos):
                         running = False
+                    # Gestion du bouton valider
                     if validate_button.collidepoint(event.pos):
                         correct_reponse = get_reponse_by_id(current_question, current_question.idBonneRep)
                         if input_text == correct_reponse.reponse:
@@ -492,6 +503,7 @@ def ranked_mode():
                         show_choices = False
                         displayed_reponses = []
                         start_time, duration = start_timer(10)  # Redémarrer le chronomètre
+                    # Gestion du boutton d'aide
                     if help_button.collidepoint(event.pos):
                         if not show_choices:
                             reponses = current_question.reponses
