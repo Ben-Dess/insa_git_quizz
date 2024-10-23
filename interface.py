@@ -188,11 +188,13 @@ def main_menu():
 
         pygame.display.update()
 
-def end_screen(score, serie):
-    user_name = get_user_name()
-    update_leaderboard(user_name, score)
+def end_screen(score, serie, ranked=False):
+    if ranked:
+        user_name = get_user_name()
+        update_leaderboard(user_name, score)
     running = True
     while running:
+        
         screen.blit(background, (0, 0))
         draw_text(f'Fin du quiz!\nVotre score final est: {score},\nEt votre meilleure série de bonnes réponses est: {serie}', font, BLACK, screen, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
 
@@ -309,9 +311,15 @@ def run_quiz(questions):
     displayed_reponses = []
     choice_rects = []  # Initialiser choice_rects ici
 
-    while True:
+    running = True
+    while running:
+
         screen.blit(background, (0, 0))
         
+        if current_question_index >= len(questions):
+            end_screen(score, best_streak, False)  # Toutes les questions ont été posées, aller à l'écran de fin
+            return  # Sort de ranked_mode() une fois l'écran de fin terminé
+
         # Afficher le score actuel
         draw_text(f'Score: {score}', font, BLACK, screen, SCREEN_WIDTH // 2, 50)
         # Afficher le streak actuel
@@ -320,7 +328,6 @@ def run_quiz(questions):
         draw_text(f'Best Streak: {best_streak}', font, BLACK, screen, SCREEN_WIDTH // 2, 150)
 
         if current_question_index >= len(questions):
-            end_screen(score, best_streak)  # Toutes les questions ont été posées, aller à l'écran de fin
             return  # Sort de run_quiz() une fois l'écran de fin terminé
 
         current_question = questions[current_question_index]
@@ -367,13 +374,14 @@ def run_quiz(questions):
                     click = True
                     # Gestion du bouton quitter
                     if quit_button.collidepoint(event.pos):
-                        pygame.quit()
-                        sys.exit()
+                        running = False
                         # Gestion du bouton valider
                     if validate_button.collidepoint(event.pos):
                         correct_reponse = get_reponse_by_id(current_question, current_question.idBonneRep)
-                        if input_text == correct_reponse.reponse:
-                            score += 1
+                        input_text = str(input_text)
+                        correct_reponse.reponse = str(correct_reponse.reponse)
+                        if input_text.lower() == correct_reponse.reponse.lower():
+                            score += 1*streak
                             streak += 1  # Incrémenter le streak
                             if streak > best_streak:
                                 best_streak = streak  # Mettre à jour le meilleur streak
@@ -402,15 +410,12 @@ def run_quiz(questions):
                         if choice_rect.collidepoint(event.pos):
                             correct_reponse = get_reponse_by_id(current_question, current_question.idBonneRep)
                             if choice == correct_reponse:
-                                score += 0.5
-                                streak += 1  # Incrémenter le streak
-                                if streak > best_streak:
-                                    best_streak = streak  # Mettre à jour le meilleur streak
+                                streak += 1
+                                score += 25*streak
+                                if streak > streakBest:
+                                    streakBest = streak
                             else:
-                                score -= 1
-                                streak = 0  # Réinitialiser le streak en cas de mauvaise réponse
-                            if score < 0:
-                                score = 0
+                                streak = 0
                             current_question_index += 1
                             input_text = ''
                             show_choices = False
@@ -453,7 +458,7 @@ def ranked_mode():
         draw_text(f'Meilleure série: {streakBest}', font, BLACK, screen, SCREEN_WIDTH // 4, 100)
 
         if current_question_index >= len(questions):
-            end_screen(score, streakBest)  # Toutes les questions ont été posées, aller à l'écran de fin
+            end_screen(score, streakBest, True)  # Toutes les questions ont été posées, aller à l'écran de fin
             return  # Sort de ranked_mode() une fois l'écran de fin terminé
 
         current_question = questions[current_question_index]
@@ -513,7 +518,10 @@ def ranked_mode():
                     # Gestion du bouton valider
                     if validate_button.collidepoint(event.pos):
                         correct_reponse = get_reponse_by_id(current_question, current_question.idBonneRep)
-                        if input_text == correct_reponse.reponse:
+                        correct_reponse.reponse = str(correct_reponse.reponse)
+                        input_text = str(input_text)
+                        
+                        if input_text.lower() == correct_reponse.reponse.lower():
                             streak += 1
                             score += 50*streak
                             if streak > streakBest:
