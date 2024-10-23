@@ -46,7 +46,7 @@ cursor = curseur('images/curseur.png')
 # Définir la police
 font = pygame.font.Font(None, 50)
 
-button_font = pygame.font.Font(None, 50)
+button_font = pygame.font.Font(None, 30)
 input_font = pygame.font.Font(None, 48)  # Augmenter la taille de la police pour les réponses
 
 # Fonction pour ajouter du texte
