@@ -46,7 +46,7 @@ cursor = curseur('images/curseur.png')
 # Définir la police
 font = pygame.font.Font(None, 50)
 
-button_font = pygame.font.Font(None, 50)
+button_font = pygame.font.Font(None, 30)
 input_font = pygame.font.Font(None, 48)  # Augmenter la taille de la police pour les réponses
 
 # Fonction pour ajouter du texte
@@ -61,6 +61,7 @@ def draw_button(text, font, color, rect, surface):
     text_surf = font.render(str(text), True, WHITE)
     text_rect = text_surf.get_rect(center=rect.center)
     surface.blit(text_surf, text_rect)
+
 
 def get_user_name():
     input_box = pygame.Rect(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2, 300, 50)
@@ -87,7 +88,7 @@ def get_user_name():
                 else:
                     user_name += event.unicode
 import os
-
+#Fonction permettant de lire le fichier contenant le tableau des scores
 def read_leaderboard(file_path='leaderboard.txt'):
     if not os.path.exists(file_path):
         return []
@@ -99,11 +100,13 @@ def read_leaderboard(file_path='leaderboard.txt'):
         leaderboard.append((name, int(score)))
     return leaderboard
 
+#Fonction permettant d'écrire à la suite du tableau des scores
 def write_leaderboard(leaderboard, file_path='leaderboard.txt'):
     with open(file_path, 'w') as file:
         for name, score in leaderboard:
             file.write(f'{name},{score}\n')
 
+#Fonction permettant de mettre à jour le tableau des scores
 def update_leaderboard(name, score, file_path='leaderboard.txt'):
     leaderboard = read_leaderboard(file_path)
     for i, (existing_name, existing_score) in enumerate(leaderboard):
@@ -117,64 +120,61 @@ def update_leaderboard(name, score, file_path='leaderboard.txt'):
     leaderboard = leaderboard[:5]  # Garder seulement les 5 meilleurs scores
     write_leaderboard(leaderboard, file_path)
 
+#Fonction permettant l'affichage du tableau des scores
 def draw_leaderboard(surface, font, x, y):
     leaderboard = read_leaderboard()
     draw_text('Leaderboard:', font, BLACK, surface, x, y)
     for i, (name, score) in enumerate(leaderboard):
         draw_text(f'{i+1}. {name}: {score}', font, BLACK, surface, x, y + (i + 1) * 30)
 
+#Fonction permettant d'afficher les boutons du menu
+def draw_menu_buttons(screen):
+    button_width = 300
+    button_height = 100
+    button_spacing = 50
+    button_1 = pygame.Rect((SCREEN_WIDTH // 2) - button_width - (button_spacing // 2), 400, button_width, button_height)
+    button_2 = pygame.Rect((SCREEN_WIDTH // 2) + (button_spacing // 2), 400, button_width, button_height)
+    quit_button = pygame.Rect(SCREEN_WIDTH - 350, 150, 200, 50)
+    mute_button = pygame.Rect(SCREEN_WIDTH - 350, 50, 200, 50)
+    add_question_button = pygame.Rect((SCREEN_WIDTH // 2) - (button_width // 2), 550, button_width, button_height)
+
+    draw_button('Mute', button_font, GREY, mute_button, screen)
+    draw_button('Quitter', button_font, RED, quit_button, screen)
+    draw_button('Normal Mode', button_font, BLUE, button_1, screen)
+    draw_button('Ranked Mode', button_font, RED, button_2, screen)
+    draw_button('Ajouter une Question', button_font, BLUE, add_question_button, screen)
+
+    return button_1, button_2, quit_button, mute_button, add_question_button
+
+#Fonction permettant de définir les évenements lors d'un clic sur les boutons du menu principal
+def handle_menu_events(buttons, click):
+    button_1, button_2, quit_button, mute_button, add_question_button = buttons
+    mx, my = pygame.mouse.get_pos()
+
+    if button_1.collidepoint((mx, my)) and click:
+        normal_mode()
+    if button_2.collidepoint((mx, my)) and click:
+        ranked_mode()
+    if mute_button.collidepoint((mx, my)) and click:
+        if pygame.mixer.music.get_volume() > 0:
+            pygame.mixer.music.set_volume(0)
+        else:
+            pygame.mixer.music.set_volume(0.1)
+    if quit_button.collidepoint((mx, my)) and click:
+        pygame.quit()
+        sys.exit()
+    if add_question_button.collidepoint((mx, my)) and click:
+        add_question_screen(screen)
+
+#Definition du menu
 def main_menu():
     click = False
     while True:
         screen.blit(background, (0, 0))
-        
-        # Centrer le titre
         draw_text('Quiz Game', font, BLACK, screen, SCREEN_WIDTH // 2, 100)
-        
-        mx, my = pygame.mouse.get_pos()
 
-        # Placer les boutons côte à côte
-        button_width = 300
-        button_height = 100
-        button_spacing = 50
-        button_1 = pygame.Rect((SCREEN_WIDTH // 2) - button_width - (button_spacing // 2), 400, button_width, button_height)
-        button_2 = pygame.Rect((SCREEN_WIDTH // 2) + (button_spacing // 2), 400, button_width, button_height)
-        quit_button = pygame.Rect(SCREEN_WIDTH - 350, 150, 200, 50)
-        mute_button = pygame.Rect(SCREEN_WIDTH - 350, 50, 200, 50)
-
-        if button_1.collidepoint((mx, my)):
-            if click:
-                normal_mode()
-        if button_2.collidepoint((mx, my)):
-            if click:
-                ranked_mode()
-        if mute_button.collidepoint((mx, my)):
-            if click:
-                if pygame.mixer.music.get_volume() > 0:
-                    pygame.mixer.music.set_volume(0)
-                else:
-                    pygame.mixer.music.set_volume(0.1)
-        if quit_button.collidepoint((mx, my)):
-            if click:
-                pygame.quit()
-                sys.exit()
-        draw_button('Mute', button_font, GREY, mute_button, screen)
-        draw_button('Quitter', button_font, RED, quit_button, screen)
-        draw_button('Normal Mode', button_font, BLUE, button_1, screen)
-        draw_button('Ranked Mode', button_font, RED, button_2, screen)
-        button_3 = pygame.Rect((SCREEN_WIDTH // 2) - (button_width // 2), 550, button_width, button_height)
-
-        if button_3.collidepoint((mx, my)):
-            if click:
-                add_question_screen(screen) 
-
-        draw_button('Ajouter une Question', button_font, BLUE, button_3, screen)
-
-
-        # Afficher le leaderboard
+        buttons = draw_menu_buttons(screen)
         draw_leaderboard(screen, font, SCREEN_WIDTH // 2, 700)
-
-        # Dessiner le curseur personnalisé
         cursor.draw(screen)
 
         click = False
@@ -186,15 +186,21 @@ def main_menu():
                 if event.button == 1:
                     click = True
 
+        handle_menu_events(buttons, click)
+
         pygame.display.update()
 
-def end_screen(score, serie):
-    user_name = get_user_name()
-    update_leaderboard(user_name, score)
+
+#Definition de l'ecran de fin de jeu
+def end_screen(score, serie, ranked=False):
+    if ranked:
+        user_name = get_user_name()
+        update_leaderboard(user_name, score)
     running = True
     while running:
+        
         screen.blit(background, (0, 0))
-        draw_text(f'Fin du quiz!\nVotre score final est: {score},\nEt votre meilleure série de bonnes réponses est: {serie}', font, BLACK, screen, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
+        draw_text(f'Fin du quiz! Votre score final est: {score}, Et votre meilleure série de bonnes réponses est: {serie}', font, BLACK, screen, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
 
         # Préparer le texte du bouton
         button_text = 'Revenir au menu principal'
@@ -309,9 +315,15 @@ def run_quiz(questions):
     displayed_reponses = []
     choice_rects = []  # Initialiser choice_rects ici
 
-    while True:
+    running = True
+    while running:
+
         screen.blit(background, (0, 0))
         
+        if current_question_index >= len(questions):
+            end_screen(score, best_streak, False)  # Toutes les questions ont été posées, aller à l'écran de fin
+            return  # Sort de ranked_mode() une fois l'écran de fin terminé
+
         # Afficher le score actuel
         draw_text(f'Score: {score}', font, BLACK, screen, SCREEN_WIDTH // 2, 50)
         # Afficher le streak actuel
@@ -320,7 +332,6 @@ def run_quiz(questions):
         draw_text(f'Best Streak: {best_streak}', font, BLACK, screen, SCREEN_WIDTH // 2, 150)
 
         if current_question_index >= len(questions):
-            end_screen(score, best_streak)  # Toutes les questions ont été posées, aller à l'écran de fin
             return  # Sort de run_quiz() une fois l'écran de fin terminé
 
         current_question = questions[current_question_index]
@@ -367,13 +378,14 @@ def run_quiz(questions):
                     click = True
                     # Gestion du bouton quitter
                     if quit_button.collidepoint(event.pos):
-                        pygame.quit()
-                        sys.exit()
+                        running = False
                         # Gestion du bouton valider
                     if validate_button.collidepoint(event.pos):
                         correct_reponse = get_reponse_by_id(current_question, current_question.idBonneRep)
-                        if input_text == correct_reponse.reponse:
-                            score += 1
+                        input_text = str(input_text)
+                        correct_reponse.reponse = str(correct_reponse.reponse)
+                        if input_text.lower() == correct_reponse.reponse.lower():
+                            score += 1*streak
                             streak += 1  # Incrémenter le streak
                             if streak > best_streak:
                                 best_streak = streak  # Mettre à jour le meilleur streak
@@ -402,15 +414,12 @@ def run_quiz(questions):
                         if choice_rect.collidepoint(event.pos):
                             correct_reponse = get_reponse_by_id(current_question, current_question.idBonneRep)
                             if choice == correct_reponse:
-                                score += 0.5
-                                streak += 1  # Incrémenter le streak
-                                if streak > best_streak:
-                                    best_streak = streak  # Mettre à jour le meilleur streak
+                                streak += 1
+                                score += 25*streak
+                                if streak > streakBest:
+                                    streakBest = streak
                             else:
-                                score -= 1
-                                streak = 0  # Réinitialiser le streak en cas de mauvaise réponse
-                            if score < 0:
-                                score = 0
+                                streak = 0
                             current_question_index += 1
                             input_text = ''
                             show_choices = False
@@ -421,6 +430,7 @@ def run_quiz(questions):
                     input_text = input_text[:-1]
                 else:
                     input_text += event.unicode
+
 
         # Dessiner le curseur personnalisé
         cursor.draw(screen)
@@ -453,7 +463,7 @@ def ranked_mode():
         draw_text(f'Meilleure série: {streakBest}', font, BLACK, screen, SCREEN_WIDTH // 4, 100)
 
         if current_question_index >= len(questions):
-            end_screen(score, streakBest)  # Toutes les questions ont été posées, aller à l'écran de fin
+            end_screen(score, streakBest, True)  # Toutes les questions ont été posées, aller à l'écran de fin
             return  # Sort de ranked_mode() une fois l'écran de fin terminé
 
         current_question = questions[current_question_index]
@@ -513,7 +523,10 @@ def ranked_mode():
                     # Gestion du bouton valider
                     if validate_button.collidepoint(event.pos):
                         correct_reponse = get_reponse_by_id(current_question, current_question.idBonneRep)
-                        if input_text == correct_reponse.reponse:
+                        correct_reponse.reponse = str(correct_reponse.reponse)
+                        input_text = str(input_text)
+                        
+                        if input_text.lower() == correct_reponse.reponse.lower():
                             streak += 1
                             score += 50*streak
                             if streak > streakBest:
