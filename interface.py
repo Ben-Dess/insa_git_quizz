@@ -97,6 +97,10 @@ def read_leaderboard(file_path='leaderboard.txt'):
     leaderboard = []
     for line in lines:
         name, score = line.strip().split(',')
+        try:
+            score = int(score)
+        except ValueError:
+            score = int(round(float(score)))
         leaderboard.append((name, int(score)))
     return leaderboard
 
@@ -416,8 +420,6 @@ def run_quiz(questions):
                             if choice == correct_reponse:
                                 streak += 1
                                 score += 25*streak
-                                if streak > streakBest:
-                                    streakBest = streak
                             else:
                                 streak = 0
                             current_question_index += 1

@@ -107,4 +107,4 @@ def get_difficulties_form():
     }
     
     # Convertir les valeurs numériques en labels
-    return [difficulty_map.get(difficulty[0], "Inconnue") for difficulty in difficulties]
+    return [difficulty_map.get(difficulty[0]) for difficulty in difficulties]
