@@ -62,6 +62,7 @@ def draw_button(text, font, color, rect, surface):
     text_rect = text_surf.get_rect(center=rect.center)
     surface.blit(text_surf, text_rect)
 
+
 def get_user_name():
     input_box = pygame.Rect(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2, 300, 50)
     user_name = ''
@@ -87,7 +88,7 @@ def get_user_name():
                 else:
                     user_name += event.unicode
 import os
-
+#Fonction permettant de lire le fichier contenant le tableau des scores
 def read_leaderboard(file_path='leaderboard.txt'):
     if not os.path.exists(file_path):
         return []
@@ -99,11 +100,13 @@ def read_leaderboard(file_path='leaderboard.txt'):
         leaderboard.append((name, int(score)))
     return leaderboard
 
+#Fonction permettant d'écrire à la suite du tableau des scores
 def write_leaderboard(leaderboard, file_path='leaderboard.txt'):
     with open(file_path, 'w') as file:
         for name, score in leaderboard:
             file.write(f'{name},{score}\n')
 
+#Fonction permettant de mettre à jour le tableau des scores
 def update_leaderboard(name, score, file_path='leaderboard.txt'):
     leaderboard = read_leaderboard(file_path)
     for i, (existing_name, existing_score) in enumerate(leaderboard):
@@ -117,11 +120,14 @@ def update_leaderboard(name, score, file_path='leaderboard.txt'):
     leaderboard = leaderboard[:5]  # Garder seulement les 5 meilleurs scores
     write_leaderboard(leaderboard, file_path)
 
+#Fonction permettant l'affichage du tableau des scores
 def draw_leaderboard(surface, font, x, y):
     leaderboard = read_leaderboard()
     draw_text('Leaderboard:', font, BLACK, surface, x, y)
     for i, (name, score) in enumerate(leaderboard):
         draw_text(f'{i+1}. {name}: {score}', font, BLACK, surface, x, y + (i + 1) * 30)
+
+#Fonction permettant d'afficher les boutons du menu
 def draw_menu_buttons(screen):
     button_width = 300
     button_height = 100
@@ -140,6 +146,7 @@ def draw_menu_buttons(screen):
 
     return button_1, button_2, quit_button, mute_button, add_question_button
 
+#Fonction permettant de définir les évenements lors d'un clic sur les boutons du menu principal
 def handle_menu_events(buttons, click):
     button_1, button_2, quit_button, mute_button, add_question_button = buttons
     mx, my = pygame.mouse.get_pos()
@@ -159,6 +166,7 @@ def handle_menu_events(buttons, click):
     if add_question_button.collidepoint((mx, my)) and click:
         add_question_screen(screen)
 
+#Definition du menu
 def main_menu():
     click = False
     while True:
@@ -182,6 +190,8 @@ def main_menu():
 
         pygame.display.update()
 
+
+#Definition de l'ecran de fin de jeu
 def end_screen(score, serie, ranked=False):
     if ranked:
         user_name = get_user_name()
@@ -190,7 +200,7 @@ def end_screen(score, serie, ranked=False):
     while running:
         
         screen.blit(background, (0, 0))
-        draw_text(f'Fin du quiz!\nVotre score final est: {score},\nEt votre meilleure série de bonnes réponses est: {serie}', font, BLACK, screen, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
+        draw_text(f'Fin du quiz! Votre score final est: {score}, Et votre meilleure série de bonnes réponses est: {serie}', font, BLACK, screen, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
 
         # Préparer le texte du bouton
         button_text = 'Revenir au menu principal'
