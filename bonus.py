@@ -34,41 +34,56 @@ def draw_timer(screen, font, start_time, duration, x, y):
     timer_text = font.render(f'Temps restant: {remaining_time}s', True, (255, 0, 0))
     screen.blit(timer_text, (x, y))
 
-# Fonction permettant d'insérer de nouvelles données à la base de données
-def add_question_to_db(question, reponses, theme, difficulty):
-    try:
-        # Connexion à la base de données
-        conn = sqlite3.connect('questions.sqlite')
-        cursor = conn.cursor()
-        
-        # Insertion de la question
-        cursor.execute(
-            "INSERT INTO questions (question_text, theme, difficulty) VALUES (?, ?, ?)",
-            (question, theme, difficulty)
-        )
-        question_id = cursor.lastrowid  # ID de la question 
-        
-        # Insertion des réponses
-        for i, reponse in enumerate(reponses):
-            is_correct = (i == 0)  # Supposons que la première réponse soit la bonne
-            cursor.execute(
-                "INSERT INTO reponses (question_id, reponse_text, is_correct) VALUES (?, ?, ?)",
-                (question_id, reponse, is_correct)
-            )
-        
-        # Validation du formulaire
+# Fonctions permettant d'insérer de nouvelles données à la base de données
+
+def insert_response(conn, response_text):
+    """Insère une nouvelle réponse dans la table Reponses si elle n'existe pas déjà."""
+    cur = conn.cursor()
+    cur.execute("SELECT idReponse FROM Reponses WHERE title = ?", (response_text,))
+    result = cur.fetchone()
+    
+    if result:
+        print(f"La réponse '{response_text}' existe déjà avec l'ID {result[0]}.")
+        return result[0]
+    else:
+        sql = '''INSERT INTO Reponses (title) VALUES (?)'''
+        print(f"Exécution de la requête : {sql} avec les valeurs : ({response_text},)")
+        cur.execute(sql, (response_text,))
         conn.commit()
-        print("Question et réponses insérées avec succès dans la base de données !")
-    
-    except sqlite3.Error as e:
-        print(f"Erreur lors de l'insertion dans la base de données: {e}")
-    
-    finally:
-        conn.close()  
+        print(f"Insertion de la réponse '{response_text}' réussie avec l'ID {cur.lastrowid}.")
+        return cur.lastrowid
+
+def insert_question(conn, question_text, correct_response_id, difficulty):
+    """Insère une nouvelle question dans la table Question avec l'ID de la bonne réponse."""
+    sql = '''INSERT INTO Question (idBonneRep, title, diff) VALUES (?, ?, ?)'''
+    cur = conn.cursor()
+    print(f"Exécution de la requête : {sql} avec les valeurs : ({correct_response_id}, {question_text}, {difficulty})")
+    cur.execute(sql, (correct_response_id, question_text, difficulty))
+    conn.commit()
+    print(f"Insertion de la question '{question_text}' réussie avec l'ID {cur.lastrowid}.")
+    return cur.lastrowid
+
+def insert_question_response(conn, question_id, response_id):
+    """Insère un lien entre la question et une réponse dans la table QuestionReponses."""
+    sql = '''INSERT INTO QuestionReponses (idQuestion, idReponse) VALUES (?, ?)'''
+    cur = conn.cursor()
+    print(f"Exécution de la requête : {sql} avec les valeurs : ({question_id}, {response_id})")
+    cur.execute(sql, (question_id, response_id))
+    conn.commit()
+    print(f"Liaison entre la question ID {question_id} et la réponse ID {response_id} réussie.")
+
+def insert_theme_question(conn, question_id, theme_id):
+    """Insère un lien entre une question et un thème dans la table ThemeQuestion."""
+    sql = '''INSERT INTO ThemeQuestion (idQuestion, idTheme) VALUES (?, ?)'''
+    cur = conn.cursor()
+    print(f"Exécution de la requête : {sql} avec les valeurs : ({question_id}, {theme_id})")
+    cur.execute(sql, (question_id, theme_id))
+    conn.commit()
+    print(f"Liaison entre la question ID {question_id} et le thème ID {theme_id} réussie.")
 
 
 # Fonctions permettant de récupérer les thèmes et les difficultés des tables Thematique et Question
-def get_theme():
+def get_theme_form():
     conn = sqlite3.connect("questions.sqlite")
     cursor = conn.cursor()
     cursor.execute("SELECT nomTheme FROM Thematique")
@@ -76,10 +91,20 @@ def get_theme():
     conn.close()
     return [theme[0] for theme in themes]  
 
-def get_difficulties():
+def get_difficulties_form():
     conn = sqlite3.connect("questions.sqlite")
     cursor = conn.cursor()
     cursor.execute("SELECT DISTINCT diff FROM Question")
     difficulties = cursor.fetchall()
     conn.close()
-    return [difficulty[0] for difficulty in difficulties]  
+    
+    # Mapping des valeurs numériques 
+    difficulty_map = {
+        0: "0",
+        1: "1",
+        2: "2",
+        3: "3"
+    }
+    
+    # Convertir les valeurs numériques en labels
+    return [difficulty_map.get(difficulty[0], "Inconnue") for difficulty in difficulties]
