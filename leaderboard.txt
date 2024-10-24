@@ -1,2 +1,5 @@
 lseas,25
 LSeas,0
+Rati,0
+dd,0
+test,0

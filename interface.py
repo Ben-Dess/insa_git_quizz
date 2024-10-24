@@ -1,9 +1,9 @@
 import pygame
 import sys
-from quiz import main as quiz_main, get_questions_from_db, get_reponse_by_id, get_themes, get_difficulties, get_questions_by_theme, get_questions_by_difficulty
+from quiz import main as quiz_main,get_themes_from_db, get_questions_from_db, get_reponse_by_id, get_themes, get_difficulties, get_questions_by_theme, get_questions_by_difficulty
 import random
-from bonus import curseur, start_timer, is_time_up, draw_timer, add_question_to_db
-
+from bonus import curseur, start_timer, is_time_up, draw_timer, insert_response, insert_question_response, insert_theme_question, insert_question, get_theme_form, get_difficulties_form
+import sqlite3
 # Initialiser Pygame
 pygame.init()
 
@@ -524,7 +524,7 @@ def ranked_mode():
                         input_text = ''
                         show_choices = False
                         displayed_reponses = []
-                        start_time, duration = start_timer(10)  # Redémarrer le chronomètre
+                        start_time, duration = start_timer(10)  
                     # Gestion du boutton d'aide
 
                     if help_button.collidepoint(event.pos):
@@ -560,17 +560,21 @@ def ranked_mode():
                     input_text += event.unicode
 
         pygame.display.update()
+
+
 # Fonction permettant au joueur d'ajouter des questions à la base de données
 def add_question_screen(screen):
     input_text_question = ''
-    input_text_reponses = ['', '', '', '']  # 4 champs de réponse
+    bonne_réponse = ''
+    mauvaises_réponses = ['', '', '']  
+
     current_input_index = 0  # 0 pour question, 1-4 pour les réponses
     theme_selected = None
     difficulty_selected = None
     error_message = ""  # Message d'erreur si le formulaire est incomplet
 
-    themes = get_themes()  # Obtention des thèmes
-    difficulties = get_difficulties()  # Obtention des difficultés
+    themes = get_themes_from_db("questions.sqlite")  # Obtention des thèmes
+    difficulties = get_difficulties_form()  # Obtention des difficultés
     cursor.draw(screen)
     
     running = True
@@ -588,14 +592,23 @@ def add_question_screen(screen):
 
         # Affichage des champs de réponse
         input_boxes_reponses = []
-        for i in range(4):
-            draw_text(f"Réponse {i+1}:", font, BLACK, screen, SCREEN_WIDTH // 4, 300 + i * 70)
+        for i in range(3):
+            draw_text(f"Mauvaise Réponse {i+1}:", font, BLACK, screen, SCREEN_WIDTH // 4, 300 + i * 70)
             input_box_reponse = pygame.Rect(SCREEN_WIDTH // 2 - 150, 300 + i * 70, 300, 50)
             input_boxes_reponses.append(input_box_reponse)  # Sauvegarder chaque boîte de réponse
             pygame.draw.rect(screen, LIGHT_GREY, input_box_reponse, border_radius=10)
             pygame.draw.rect(screen, BLACK, input_box_reponse, 2, border_radius=10)
-            text_surface_reponse = input_font.render(input_text_reponses[i], True, BLACK)
+            text_surface_reponse = input_font.render(mauvaises_réponses[i], True, BLACK)
             screen.blit(text_surface_reponse, (input_box_reponse.x + 5, input_box_reponse.y + 5))
+        
+        # Affichage du champ pour la bonne réponse
+        draw_text("Bonne réponse:", font, BLACK, screen, SCREEN_WIDTH // 4, 300 + 3 * 70)  # Ajuster la position Y
+        input_box_bonne_reponse = pygame.Rect(SCREEN_WIDTH // 2 - 150, 300 + 3 * 70, 300, 50)
+        pygame.draw.rect(screen, LIGHT_GREY, input_box_bonne_reponse, border_radius=10)
+        pygame.draw.rect(screen, BLACK, input_box_bonne_reponse, 2, border_radius=10)
+        text_surface_bonne_reponse = input_font.render(bonne_réponse, True, BLACK)
+        screen.blit(text_surface_bonne_reponse, (input_box_bonne_reponse.x + 5, input_box_bonne_reponse.y + 5))
+
 
         # Afficher la sélection du thème
         draw_text("Thème:", font, BLACK, screen, SCREEN_WIDTH // 4, 600)
@@ -625,7 +638,7 @@ def add_question_screen(screen):
 
         pygame.display.update()
 
-        for event in pygame.event.get():
+        for event in pygame.event.get():  # Utilisation correcte de 'event'
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
@@ -635,8 +648,10 @@ def add_question_screen(screen):
                     # Vérification des champs
                     if not input_text_question:
                         error_message = "Le champ de la question est vide !"
-                    elif '' in input_text_reponses:
-                        error_message = "Tous les champs de réponse doivent être remplis !"
+                    elif not bonne_réponse:
+                        error_message = "La bonne réponse doit être remplie !"
+                    elif any(r == '' for r in mauvaises_réponses):
+                        error_message = "Toutes les mauvaises réponses doivent être remplies !"
                     elif not theme_selected:
                         error_message = "Veuillez sélectionner un thème !"
                     elif not difficulty_selected:
@@ -644,44 +659,83 @@ def add_question_screen(screen):
                     else:
                         # Soumettre la question à la BDD (si tout est rempli)
                         error_message = ""
-                        add_question_to_db(input_text_question, input_text_reponses, theme_selected, difficulty_selected)
-                        print("Question soumise avec succès!")
-                        running = False
-                # Bouton Quitter que permet de revenir en arrière dans le jeu
-                if quit_button.collidepoint(event.pos):
-                     return
-                if theme_box.collidepoint(event.pos):
-                    # Sélection d'un thème
-                    theme_selected = themes[0]  
+                        db_connection = sqlite3.connect("questions.sqlite")
 
+                        # Insertion de la bonne réponse et récupération de son ID
+                        correct_response_id = insert_response(db_connection, bonne_réponse)
+
+                        # Insertion de la question en liant l'ID de la bonne réponse
+                        question_id = insert_question(db_connection, input_text_question, correct_response_id, difficulty_selected)
+                        insert_question_response(db_connection, question_id, correct_response_id)
+
+                        # Insertion des mauvaises réponses et liaison
+                        for bad_answer in mauvaises_réponses:
+                        # Insérer la mauvaise réponse et récupérer son ID
+                            response_id = insert_response(db_connection, bad_answer)
+                            # Lier la mauvaise réponse à la question
+                            insert_question_response(db_connection, question_id, response_id)
+
+                        # Lier la question au thème
+                        insert_theme_question(db_connection, question_id, theme_object.id)
+
+                        print("Question soumise avec succès!")
+                        db_connection.close()
+                        running = False
+
+                # Bouton Quitter pour revenir en arrière dans le jeu
+                if quit_button.collidepoint(event.pos):
+                    return
+
+                # Si l'utilisateur clique sur la boîte de sélection de thème
+                if theme_box.collidepoint(event.pos):
+                    # Sélection d'un thème : changer seulement sur un seul clic
+                    try:
+                        current_theme_index += 1
+                        current_theme_index = current_theme_index%10
+                        theme_selected = themes[current_theme_index].theme
+                        theme_object = themes[current_theme_index]
+                    except:
+                        current_theme_index = 0
+
+                # Si l'utilisateur clique sur la boîte de sélection de difficulté
                 if difficulty_box.collidepoint(event.pos):
-                    # Sélection d'une difficulté
-                    difficulty_selected = difficulties[0]  
+                    # Sélection d'une difficulté : changer seulement sur un seul clic
+                    current_difficulty_index = (difficulties.index(difficulty_selected) + 1) % len(difficulties) if difficulty_selected else 0
+                    difficulty_selected = difficulties[current_difficulty_index]
 
                 # Sélection de la zone de texte (question ou réponse)
                 if input_box_question.collidepoint(event.pos):
-                    current_input_index = 0  # Focaliser sur la question
+                    current_input_index = 0  
 
-                # Vérification de chaque zone de réponse
                 for i, input_box_reponse in enumerate(input_boxes_reponses):
                     if input_box_reponse.collidepoint(event.pos):
-                        current_input_index = i + 1  # Focaliser sur la réponse correspondante
+                        current_input_index = i + 1  
 
+                if input_box_bonne_reponse.collidepoint(event.pos):
+                    current_input_index = 4  
+
+            # Gestion des entrées de texte
             if event.type == pygame.KEYDOWN:
-                # La question
                 if current_input_index == 0:  # Champ de question sélectionné
                     if event.key == pygame.K_BACKSPACE:
                         input_text_question = input_text_question[:-1]
                     else:
                         input_text_question += event.unicode
 
-                # Les réponses
-                elif 1 <= current_input_index <= 4:  # Champ de réponse sélectionné
+                elif 1 <= current_input_index <= 3:  # Champs pour les mauvaises réponses
                     index_reponse = current_input_index - 1
                     if event.key == pygame.K_BACKSPACE:
-                        input_text_reponses[index_reponse] = input_text_reponses[index_reponse][:-1]
+                        mauvaises_réponses[index_reponse] = mauvaises_réponses[index_reponse][:-1]
                     else:
-                        input_text_reponses[index_reponse] += event.unicode
+                        mauvaises_réponses[index_reponse] += event.unicode
+
+                elif current_input_index == 4:  # Champ pour la bonne réponse
+                    if event.key == pygame.K_BACKSPACE:
+                        bonne_réponse = bonne_réponse[:-1]
+                    else:
+                        bonne_réponse += event.unicode
+
+
 
 
 if __name__ == "__main__":
