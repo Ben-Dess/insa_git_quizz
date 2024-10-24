@@ -122,59 +122,51 @@ def draw_leaderboard(surface, font, x, y):
     draw_text('Leaderboard:', font, BLACK, surface, x, y)
     for i, (name, score) in enumerate(leaderboard):
         draw_text(f'{i+1}. {name}: {score}', font, BLACK, surface, x, y + (i + 1) * 30)
+def draw_menu_buttons(screen):
+    button_width = 300
+    button_height = 100
+    button_spacing = 50
+    button_1 = pygame.Rect((SCREEN_WIDTH // 2) - button_width - (button_spacing // 2), 400, button_width, button_height)
+    button_2 = pygame.Rect((SCREEN_WIDTH // 2) + (button_spacing // 2), 400, button_width, button_height)
+    quit_button = pygame.Rect(SCREEN_WIDTH - 350, 150, 200, 50)
+    mute_button = pygame.Rect(SCREEN_WIDTH - 350, 50, 200, 50)
+    add_question_button = pygame.Rect((SCREEN_WIDTH // 2) - (button_width // 2), 550, button_width, button_height)
+
+    draw_button('Mute', button_font, GREY, mute_button, screen)
+    draw_button('Quitter', button_font, RED, quit_button, screen)
+    draw_button('Normal Mode', button_font, BLUE, button_1, screen)
+    draw_button('Ranked Mode', button_font, RED, button_2, screen)
+    draw_button('Ajouter une Question', button_font, BLUE, add_question_button, screen)
+
+    return button_1, button_2, quit_button, mute_button, add_question_button
+
+def handle_menu_events(buttons, click):
+    button_1, button_2, quit_button, mute_button, add_question_button = buttons
+    mx, my = pygame.mouse.get_pos()
+
+    if button_1.collidepoint((mx, my)) and click:
+        normal_mode()
+    if button_2.collidepoint((mx, my)) and click:
+        ranked_mode()
+    if mute_button.collidepoint((mx, my)) and click:
+        if pygame.mixer.music.get_volume() > 0:
+            pygame.mixer.music.set_volume(0)
+        else:
+            pygame.mixer.music.set_volume(0.1)
+    if quit_button.collidepoint((mx, my)) and click:
+        pygame.quit()
+        sys.exit()
+    if add_question_button.collidepoint((mx, my)) and click:
+        add_question_screen(screen)
 
 def main_menu():
     click = False
     while True:
         screen.blit(background, (0, 0))
-        
-        # Centrer le titre
         draw_text('Quiz Game', font, BLACK, screen, SCREEN_WIDTH // 2, 100)
-        
-        mx, my = pygame.mouse.get_pos()
 
-        # Placer les boutons côte à côte
-        button_width = 300
-        button_height = 100
-        button_spacing = 50
-        button_1 = pygame.Rect((SCREEN_WIDTH // 2) - button_width - (button_spacing // 2), 400, button_width, button_height)
-        button_2 = pygame.Rect((SCREEN_WIDTH // 2) + (button_spacing // 2), 400, button_width, button_height)
-        quit_button = pygame.Rect(SCREEN_WIDTH - 350, 150, 200, 50)
-        mute_button = pygame.Rect(SCREEN_WIDTH - 350, 50, 200, 50)
-
-        if button_1.collidepoint((mx, my)):
-            if click:
-                normal_mode()
-        if button_2.collidepoint((mx, my)):
-            if click:
-                ranked_mode()
-        if mute_button.collidepoint((mx, my)):
-            if click:
-                if pygame.mixer.music.get_volume() > 0:
-                    pygame.mixer.music.set_volume(0)
-                else:
-                    pygame.mixer.music.set_volume(0.1)
-        if quit_button.collidepoint((mx, my)):
-            if click:
-                pygame.quit()
-                sys.exit()
-        draw_button('Mute', button_font, GREY, mute_button, screen)
-        draw_button('Quitter', button_font, RED, quit_button, screen)
-        draw_button('Normal Mode', button_font, BLUE, button_1, screen)
-        draw_button('Ranked Mode', button_font, RED, button_2, screen)
-        button_3 = pygame.Rect((SCREEN_WIDTH // 2) - (button_width // 2), 550, button_width, button_height)
-
-        if button_3.collidepoint((mx, my)):
-            if click:
-                add_question_screen(screen) 
-
-        draw_button('Ajouter une Question', button_font, BLUE, button_3, screen)
-
-
-        # Afficher le leaderboard
+        buttons = draw_menu_buttons(screen)
         draw_leaderboard(screen, font, SCREEN_WIDTH // 2, 700)
-
-        # Dessiner le curseur personnalisé
         cursor.draw(screen)
 
         click = False
@@ -185,6 +177,8 @@ def main_menu():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     click = True
+
+        handle_menu_events(buttons, click)
 
         pygame.display.update()
 
@@ -426,6 +420,7 @@ def run_quiz(questions):
                     input_text = input_text[:-1]
                 else:
                     input_text += event.unicode
+
 
         # Dessiner le curseur personnalisé
         cursor.draw(screen)
